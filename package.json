@@ -23,6 +23,6 @@
     "eslint": "^9",
     "eslint-config-next": "15.1.2",
     "@eslint/eslintrc": "^3",
-    "@netlify/plugin-nextjs": "^3.0.0"
+    "@netlify/plugin-nextjs": "^5.9.1"
   }
 }
