@@ -29,7 +29,7 @@ export default function CompoundInterestCalculator() {
 
   useEffect(() => {
     const uuid = crypto.randomUUID();
-    const initialValue: MapType<UUID, CompoundInterest> = {};
+    const initialValue: MapType<string, CompoundInterest> = {};
     initialValue[uuid] = initialState;
 
     const compoundInterestCharts = getFromLocalStorage<
@@ -39,7 +39,7 @@ export default function CompoundInterestCalculator() {
   }, []);
 
   const handleUpdateCompoundInterest = (
-    uuid: UUID,
+    uuid: string,
     compoundInterest: CompoundInterest,
   ) => {
     const newCompoundInterestCharts = {
