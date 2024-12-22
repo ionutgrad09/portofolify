@@ -1,76 +1,88 @@
 "use client";
 
-import React, {useState} from 'react';
-import { TextField, Typography, Box } from '@mui/material';
-import CompoundInterestChart from "@/components/compound-interest/CompoundInterestChart";
+import React, { useEffect, useState } from "react";
+import { UUID } from "crypto";
+import { MapType } from "@/types/types";
+import CompoundInterestView from "@/components/compound-interest/CompoundInterestView";
+import { getFromLocalStorage, setToLocalStorage } from "@/util/localStorage";
+import { Box } from "@mui/material";
+import AddNewCompoundInterestView from "@/components/compound-interest/AddNewCompoundInterestView";
 
 export type CompoundInterest = {
-    initialContribution: number,
-    monthlyContribution: number,
-    yearsToInvest: number
-    expectedInterest: number
-}
+  initialContribution: number;
+  monthlyContribution: number;
+  yearsToInvest: number;
+  expectedInterest: number;
+};
 
 const initialState: CompoundInterest = {
-    initialContribution: 0,
-    monthlyContribution: 0,
-    yearsToInvest: 0,
-    expectedInterest: 0
-}
+  initialContribution: 0,
+  monthlyContribution: 0,
+  yearsToInvest: 0,
+  expectedInterest: 0,
+};
 
 export default function CompoundInterestCalculator() {
-    const [compoundInterest, setCompoundInterest] = useState<CompoundInterest>(initialState);
+  const [compoundInterestCharts, setCompoundInterestCharts] = useState<
+    MapType<UUID, CompoundInterest>
+  >({});
 
-    return (
-        <Box className="p-8 mx-auto flex flex-col bg-white gap-10">
-            <Typography variant="h4" className="text-center mb-6">
-                Compound Interest Calculator
-            </Typography>
+  useEffect(() => {
+    const uuid = crypto.randomUUID();
+    const initialValue: MapType<UUID, CompoundInterest> = {};
+    initialValue[uuid] = initialState;
 
-            <Box className="flex">
-                <div className="w-[300px] space-y-4">
-                    <TextField
-                        label="Initial Amount"
-                        variant="outlined"
-                        type="number"
-                        fullWidth
-                        value={compoundInterest.initialContribution}
-                        onChange={(e) => setCompoundInterest(current => ({...current, initialContribution: parseFloat(e.target.value)}))}
-                        required
-                    />
-                    <TextField
-                        label="Annual Interest Rate (%)"
-                        variant="outlined"
-                        type="number"
-                        fullWidth
-                        value={compoundInterest.expectedInterest}
-                        onChange={(e) => setCompoundInterest(current => ({...current, expectedInterest: parseFloat(e.target.value)}))}
-                        required
-                    />
-                    <TextField
-                        label="Time Period (years)"
-                        variant="outlined"
-                        type="number"
-                        fullWidth
-                        value={compoundInterest.yearsToInvest}
-                        onChange={(e) => setCompoundInterest(current => ({...current, yearsToInvest: parseFloat(e.target.value)}))}
-                        required
-                    />
-                    <TextField
-                        label="Monthly Contribution"
-                        variant="outlined"
-                        type="number"
-                        fullWidth
-                        value={compoundInterest.monthlyContribution}
-                        onChange={(e) => setCompoundInterest(current => ({...current, monthlyContribution: parseFloat(e.target.value)}))}
-                        required
-                    />
-                </div>
+    const compoundInterestCharts = getFromLocalStorage<
+      MapType<UUID, CompoundInterest>
+    >("compoundInterestCharts", initialValue);
+    setCompoundInterestCharts(compoundInterestCharts);
+  }, []);
 
-                <Box className="flex-1 mt-6 text-center">
-                    <CompoundInterestChart compoundInterest={compoundInterest} />
-                </Box>
-            </Box>
-        </Box>
-    );
-};
+  const handleUpdateCompoundInterest = (
+    uuid: UUID,
+    compoundInterest: CompoundInterest,
+  ) => {
+    const newCompoundInterestCharts = {
+      ...compoundInterestCharts,
+      [uuid]: compoundInterest,
+    };
+
+    // Save to local storage
+    setToLocalStorage("compoundInterestCharts", newCompoundInterestCharts);
+
+    // Update state
+    setCompoundInterestCharts(newCompoundInterestCharts);
+  };
+
+  const handleAddNewCompoundInterest = () => {
+    const uuid = crypto.randomUUID();
+    const newCompoundInterestCharts = {
+      ...compoundInterestCharts,
+      [uuid]: initialState,
+    };
+
+    // Save to local storage
+    setToLocalStorage("compoundInterestCharts", newCompoundInterestCharts);
+
+    // Update state
+    setCompoundInterestCharts(newCompoundInterestCharts);
+  };
+
+  return (
+    <Box className="flex flex-wrap gap-4 mt-4">
+      {
+        Object.entries(compoundInterestCharts).map(
+          ([uuid, compoundInterest]) => (
+            <CompoundInterestView
+              key={uuid}
+              uuid={uuid}
+              compoundInterest={compoundInterest}
+              updateCompoundInterest={handleUpdateCompoundInterest}
+            />
+          ),
+        ) as React.ReactNode[]
+      }
+      <AddNewCompoundInterestView onAdd={handleAddNewCompoundInterest} />
+    </Box>
+  );
+}

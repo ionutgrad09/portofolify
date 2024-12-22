@@ -2,7 +2,7 @@ import React, { useState, useEffect, FC } from "react";
 import { Box } from "@mui/material";
 import { LineChart } from "@mui/x-charts";
 import { CompoundInterest } from "@/app/compound-interest/page";
-import { getLargeNumberWithCurrency } from "@/utils/numbers";
+import { getLargeNumberWithCurrency } from "@/util/numbers";
 
 interface CompoundInterestChartProps {
   compoundInterest: CompoundInterest;
@@ -69,9 +69,8 @@ const CompoundInterestChart: FC<CompoundInterestChartProps> = ({
     yearsToInvest,
   ]);
 
-  console.log("=== chartData ===", chartData);
   return (
-    <Box sx={{ padding: 4 }}>
+    <Box sx={{ width: "100%"}}>
       <LineChart
         yAxis={[
           {
@@ -85,8 +84,7 @@ const CompoundInterestChart: FC<CompoundInterestChartProps> = ({
         //     }
         //   },
         // ]}
-        sx={{ padding: "20px" }}
-        height={500}
+        height={400}
         series={chartData}
         // dataset={chartData}
       />

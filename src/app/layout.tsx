@@ -34,7 +34,7 @@ export default function RootLayout({
       <AppRouterCacheProvider >
           <ThemeProvider>
             <Header />
-              <div className='pl-[10%] pr-[10%]'>
+              <div className='pl-[2%] pr-[2%]'>
                   {children}
               </div>
           </ThemeProvider>
