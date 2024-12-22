@@ -1,11 +1,8 @@
-import React, {FC} from "react";
+import React from "react";
 import {Divider} from "@mui/material";
 
-interface HeaderProps {
 
-}
-
-const Header: FC<HeaderProps> = () => {
+const Header = () => {
 
     return (
         <>

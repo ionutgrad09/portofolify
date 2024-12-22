@@ -1,5 +1,5 @@
 import React, { useState, useEffect, FC } from "react";
-import { Box, Typography } from "@mui/material";
+import { Box } from "@mui/material";
 import { LineChart } from "@mui/x-charts";
 import { CompoundInterest } from "@/app/compound-interest/page";
 import { getLargeNumberWithCurrency } from "@/utils/numbers";
@@ -8,9 +8,14 @@ interface CompoundInterestChartProps {
   compoundInterest: CompoundInterest;
 }
 
-const valueFormatter = (value) => {
-  return value ? `$${value}` : value;
-}
+// type ChartData = {
+//   data: number[];
+//   label: string;
+//   color: string;
+//   valueFormatter: (value: number | string) => string;
+// };
+
+const valueFormatter = (value: number | string) => `$${value}`;
 
 const CompoundInterestChart: FC<CompoundInterestChartProps> = ({
   compoundInterest,
@@ -22,7 +27,7 @@ const CompoundInterestChart: FC<CompoundInterestChartProps> = ({
     yearsToInvest,
   } = compoundInterest;
 
-  const [chartData, setChartData] = useState([]);
+  const [chartData, setChartData] = useState<any[]>([]);
 
   useEffect(() => {
     const actualAmountData = [];
@@ -36,9 +41,8 @@ const CompoundInterestChart: FC<CompoundInterestChartProps> = ({
       actualAmount = monthlyContribution * 12 + actualAmount;
 
       if (year > 1) {
-        actualAmount = actualAmount + actualAmount * (expectedInterest / 100.0)
+        actualAmount = actualAmount + actualAmount * (expectedInterest / 100.0);
       }
-
 
       investedAmountData.push(parseFloat(investedAmount.toFixed(2)));
       actualAmountData.push(parseFloat(actualAmount.toFixed(2)));
@@ -48,17 +52,22 @@ const CompoundInterestChart: FC<CompoundInterestChartProps> = ({
         data: actualAmountData,
         label: "Total sum",
         color: "green",
-        valueFormatter
+        valueFormatter,
       },
       {
         data: investedAmountData,
         label: "Invested sum",
         color: "lightblue",
-        valueFormatter
+        valueFormatter,
       },
     ];
     setChartData(dataToSet);
-  }, [compoundInterest]);
+  }, [
+    initialContribution,
+    expectedInterest,
+    monthlyContribution,
+    yearsToInvest,
+  ]);
 
   console.log("=== chartData ===", chartData);
   return (
