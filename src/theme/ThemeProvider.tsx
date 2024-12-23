@@ -1,16 +1,15 @@
 "use client"
 
-import {purple} from "@mui/material/colors";
 import {createTheme, ThemeProvider as MUIThemeProvider} from '@mui/material/styles';
 
 
 const theme = createTheme({
     palette: {
         primary: {
-            main: purple[500],
+            main: '#1976d2',
         },
         secondary: {
-            main: '#f44336',
+            main: '#fff',
         },
     },
 });

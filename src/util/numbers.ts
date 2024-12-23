@@ -17,7 +17,5 @@ export const getLargeNumberWithCurrency = (balance: number, currency: Currency =
         }
     }
 
-    console.log("=== currency ===", currency);
-    console.log("=== `${currency}${balance}` ===", `${currency}${balance}`);
     return `${currency}${balance}`;
 }

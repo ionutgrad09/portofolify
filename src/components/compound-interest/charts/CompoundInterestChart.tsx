@@ -8,13 +8,6 @@ interface CompoundInterestChartProps {
   compoundInterest: CompoundInterest;
 }
 
-// type ChartData = {
-//   data: number[];
-//   label: string;
-//   color: string;
-//   valueFormatter: (value: number | string) => string;
-// };
-
 const valueFormatter = (value: number | string) => `$${value}`;
 
 const CompoundInterestChart: FC<CompoundInterestChartProps> = ({
@@ -27,41 +20,44 @@ const CompoundInterestChart: FC<CompoundInterestChartProps> = ({
     yearsToInvest,
   } = compoundInterest;
 
-  const [chartData, setChartData] = useState<any[]>([]);
+  const [series, setSeries] = useState<any[]>([]);
+  const [dataset, setDataSet] = useState<any[]>([]);
 
   useEffect(() => {
     const actualAmountData = [];
     const investedAmountData = [];
+    const dataSet = [];
 
     let investedAmount = initialContribution;
     let actualAmount = initialContribution;
 
     for (let year = 1; year <= yearsToInvest; year++) {
-      investedAmount = investedAmount + monthlyContribution * 12;
-      actualAmount = monthlyContribution * 12 + actualAmount;
-
       if (year > 1) {
+        investedAmount = investedAmount + monthlyContribution * 12;
+        actualAmount = monthlyContribution * 12 + actualAmount;
         actualAmount = actualAmount + actualAmount * (expectedInterest / 100.0);
       }
 
-      investedAmountData.push(parseFloat(investedAmount.toFixed(2)));
       actualAmountData.push(parseFloat(actualAmount.toFixed(2)));
+      investedAmountData.push(parseFloat(investedAmount.toFixed(2)));
     }
-    const dataToSet = [
+    const computedSeries = [
       {
         data: actualAmountData,
         label: "Total sum",
-        color: "green",
+        color: "red",
         valueFormatter,
       },
       {
         data: investedAmountData,
         label: "Invested sum",
-        color: "lightblue",
+        color: "#1976d2",
         valueFormatter,
       },
     ];
-    setChartData(dataToSet);
+
+    setSeries(computedSeries);
+    setDataSet(Array.from({ length: yearsToInvest }, (_, i) => i + 1));
   }, [
     initialContribution,
     expectedInterest,
@@ -70,23 +66,22 @@ const CompoundInterestChart: FC<CompoundInterestChartProps> = ({
   ]);
 
   return (
-    <Box sx={{ width: "100%"}}>
+    <Box sx={{ width: "100%" }}>
       <LineChart
         yAxis={[
           {
             valueFormatter: (value) => getLargeNumberWithCurrency(value),
           },
         ]}
-        // xAxis={[
-        //   {
-        //     valueFormatter: () => {
-        //       return "test"
-        //     }
-        //   },
-        // ]}
+        xAxis={[
+          {
+            data: dataset,
+            label: "Year",
+            tickInterval: dataset,
+          },
+        ]}
         height={400}
-        series={chartData}
-        // dataset={chartData}
+        series={series}
       />
     </Box>
   );

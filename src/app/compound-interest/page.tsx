@@ -1,12 +1,10 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { UUID } from "crypto";
 import { MapType } from "@/types/types";
-import CompoundInterestView from "@/components/compound-interest/CompoundInterestView";
+import CompoundInterestCard from "@/components/compound-interest/CompoundInterestCard";
 import { getFromLocalStorage, setToLocalStorage } from "@/util/localStorage";
-import { Box } from "@mui/material";
-import AddNewCompoundInterestView from "@/components/compound-interest/AddNewCompoundInterestView";
+import { Box, Button } from "@mui/material";
 
 export type CompoundInterest = {
   initialContribution: number;
@@ -24,7 +22,7 @@ const initialState: CompoundInterest = {
 
 export default function CompoundInterestCalculator() {
   const [compoundInterestCharts, setCompoundInterestCharts] = useState<
-    MapType<UUID, CompoundInterest>
+    MapType<string, CompoundInterest>
   >({});
 
   useEffect(() => {
@@ -33,7 +31,7 @@ export default function CompoundInterestCalculator() {
     initialValue[uuid] = initialState;
 
     const compoundInterestCharts = getFromLocalStorage<
-      MapType<UUID, CompoundInterest>
+      MapType<string, CompoundInterest>
     >("compoundInterestCharts", initialValue);
     setCompoundInterestCharts(compoundInterestCharts);
   }, []);
@@ -68,21 +66,53 @@ export default function CompoundInterestCalculator() {
     setCompoundInterestCharts(newCompoundInterestCharts);
   };
 
+  const handleDelete = (uuid: string) => {
+    const newCompoundInterestCharts = { ...compoundInterestCharts };
+    delete newCompoundInterestCharts[uuid];
+
+    // Save to local storage
+    setToLocalStorage("compoundInterestCharts", newCompoundInterestCharts);
+
+    // Update state
+    setCompoundInterestCharts(newCompoundInterestCharts);
+  };
+
+  const handleDuplicate = (uuid: string) => {
+    const newCompoundInterestCharts = {
+      ...compoundInterestCharts,
+      [crypto.randomUUID()]: compoundInterestCharts[uuid],
+    };
+
+    // Save to local storage
+    setToLocalStorage("compoundInterestCharts", newCompoundInterestCharts);
+
+    // Update state
+    setCompoundInterestCharts(newCompoundInterestCharts);
+  };
+
   return (
-    <Box className="flex flex-wrap gap-4 mt-4">
-      {
-        Object.entries(compoundInterestCharts).map(
-          ([uuid, compoundInterest]) => (
-            <CompoundInterestView
-              key={uuid}
-              uuid={uuid}
-              compoundInterest={compoundInterest}
-              updateCompoundInterest={handleUpdateCompoundInterest}
-            />
-          ),
-        ) as React.ReactNode[]
-      }
-      <AddNewCompoundInterestView onAdd={handleAddNewCompoundInterest} />
+    <Box className="pl-[5%] pr-[5%] mt-4 flex flex-col">
+      <Box className="h-[50px] w-full flex justify-end mb-[20px]">
+        <Button variant="outlined" onClick={handleAddNewCompoundInterest}>
+          Add New Card
+        </Button>
+      </Box>
+      <Box className=" flex flex-wrap gap-4 mt-4">
+        {
+          Object.entries(compoundInterestCharts).map(
+            ([uuid, compoundInterest]) => (
+              <CompoundInterestCard
+                key={uuid}
+                uuid={uuid}
+                handleDuplicate={handleDuplicate}
+                handleDelete={handleDelete}
+                compoundInterest={compoundInterest}
+                updateCompoundInterest={handleUpdateCompoundInterest}
+              />
+            ),
+          ) as React.ReactNode[]
+        }
+      </Box>
     </Box>
   );
 }
