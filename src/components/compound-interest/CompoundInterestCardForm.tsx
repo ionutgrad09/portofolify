@@ -17,9 +17,12 @@ const CompoundInterestCardForm: FC<CompoundInterestProps> = ({
   updateCompoundInterest,
 }) => {
   return (
-    <Box className="flex flex-col justify-center w-[200px] space-y-4">
+    <Box className="flex flex-col justify-center w-[450px] space-y-8">
       <TextField
-        label="Initial Amount"
+        label="Initial Investing"
+        helperText={
+          <b>The initial amount of money available for investment.</b>
+        }
         variant="outlined"
         type="number"
         fullWidth
@@ -33,8 +36,9 @@ const CompoundInterestCardForm: FC<CompoundInterestProps> = ({
         required
       />
       <TextField
-        label="Annual Interest Rate (%)"
+        label="Estimated Interest Rate"
         variant="outlined"
+        helperText={<b>The annual interest rate you expect.</b>}
         type="number"
         fullWidth
         value={compoundInterest.expectedInterest}
@@ -49,6 +53,7 @@ const CompoundInterestCardForm: FC<CompoundInterestProps> = ({
       <TextField
         label="Time Period (years)"
         variant="outlined"
+        helperText={<b>The number of years you plan to invest.</b>}
         type="number"
         fullWidth
         value={compoundInterest.yearsToInvest}
@@ -62,6 +67,12 @@ const CompoundInterestCardForm: FC<CompoundInterestProps> = ({
       />
       <TextField
         label="Monthly Contribution"
+        helperText={
+          <b>
+            The amount you intend to contribute to the principal each month, or
+            a negative value if you plan to withdraw from it monthly.
+          </b>
+        }
         variant="outlined"
         type="number"
         fullWidth

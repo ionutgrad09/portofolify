@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { MapType } from "@/types/types";
+import { ChartType, MapType } from "@/types/types";
 import CompoundInterestCard from "@/components/compound-interest/CompoundInterestCard";
 import { getFromLocalStorage, setToLocalStorage } from "@/util/localStorage";
 import { Box, Button } from "@mui/material";
@@ -11,6 +11,7 @@ export type CompoundInterest = {
   monthlyContribution: number;
   yearsToInvest: number;
   expectedInterest: number;
+  chartType: ChartType;
 };
 
 const initialState: CompoundInterest = {
@@ -18,6 +19,7 @@ const initialState: CompoundInterest = {
   monthlyContribution: 0,
   yearsToInvest: 0,
   expectedInterest: 0,
+  chartType: ChartType.LINE
 };
 
 export default function CompoundInterestCalculator() {
@@ -90,6 +92,24 @@ export default function CompoundInterestCalculator() {
     setCompoundInterestCharts(newCompoundInterestCharts);
   };
 
+  const handleChartTypeChange = (uuid: string, chartType: ChartType) => {
+    // console.log("=== uuid ===", uuid);
+    // console.log("=== chartType ===", chartType);
+    const newCompoundInterestCharts = {
+      ...compoundInterestCharts,
+      [uuid]: {
+        ...compoundInterestCharts[uuid],
+        chartType,
+      },
+    };
+
+    // Save to local storage
+    setToLocalStorage("compoundInterestCharts", newCompoundInterestCharts);
+
+    // Update state
+    setCompoundInterestCharts(newCompoundInterestCharts);
+  }
+
   return (
     <Box className="pl-[5%] pr-[5%] mt-4 flex flex-col">
       <Box className="h-[50px] w-full flex justify-end mb-[20px]">
@@ -108,6 +128,7 @@ export default function CompoundInterestCalculator() {
                 handleDelete={handleDelete}
                 compoundInterest={compoundInterest}
                 updateCompoundInterest={handleUpdateCompoundInterest}
+                handleChartTypeChange={handleChartTypeChange}
               />
             ),
           ) as React.ReactNode[]
