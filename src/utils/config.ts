@@ -1,6 +1,18 @@
+interface Config {
+  SESSION_KEY: string;
+  SESSION_DURATION_MS: number;
+  STORAGE_KEYS: {
+    DATA: string;
+    CASH_SPLIT: string;
+    INVESTMENT: string;
+  };
+  COLORS: {
+    PIE: string[];
+    INVESTMENT: string[];
+  };
+}
 
-
-export const CONFIG = {
+export const CONFIG: Config = {
   SESSION_KEY: 'wealthTrackerSession',
   SESSION_DURATION_MS: 30 * 60 * 1000,
   STORAGE_KEYS: {

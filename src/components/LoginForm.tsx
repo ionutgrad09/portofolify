@@ -1,7 +1,11 @@
-import React, {useState} from "react";
+import React, {useState, FormEvent} from "react";
 
-const LoginForm = ({ onSubmit }) => {
-  const [pin, setPin] = useState('');
+interface LoginFormProps {
+  onSubmit: (event: FormEvent<HTMLFormElement>) => void;
+}
+
+const LoginForm: React.FC<LoginFormProps> = ({ onSubmit }) => {
+  const [pin, setPin] = useState<string>('');
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 flex items-center justify-center p-4">
@@ -12,7 +16,7 @@ const LoginForm = ({ onSubmit }) => {
             name="password"
             type="password"
             value={pin}
-            onChange={(e) => setPin(e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPin(e.target.value)}
             placeholder="PIN"
             className="w-full px-4 py-3 rounded-xl bg-slate-800 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
             required

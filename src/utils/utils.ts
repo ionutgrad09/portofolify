@@ -1,7 +1,7 @@
-import {CONFIG} from "./config.js";
+import {CONFIG} from "./config";
 
 
-export const parseLine = (line) => {
+export const parseLine = (line: string): string[] => {
   const result = [];
   let current = '';
   let inQuotes = false;
@@ -15,42 +15,42 @@ export const parseLine = (line) => {
   return result;
 };
 
-export const parseNum = (val) => {
+export const parseNum = (val: string): number => {
   if (!val) return 0;
   let cleaned = val.replace(/[€"]/g, '').replace(/,/g, '');
   return parseFloat(cleaned) || 0;
 };
 
-export const formatCurrency = (value) => {
+export const formatCurrency = (value: number): string => {
   return new Intl.NumberFormat('ro-RO', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2
   }).format(value);
 };
 
-export const formatEUR = (value) => {
+export const formatEUR = (value: number): string => {
   return `€${formatCurrency(value)}`;
 };
 
-export const formatRON = (value) => {
+export const formatRON = (value: number): string => {
   return `${formatCurrency(value)} RON`;
 };
 
-export const getFromStorage = (key) => {
+export const getFromStorage = <T>(key: string): T[] => {
   const saved = localStorage.getItem(key);
   return saved ? JSON.parse(saved) : [];
 };
 
-export const saveToStorage = (key, data) => {
+export const saveToStorage = <T>(key: string, data: T): void => {
   localStorage.setItem(key, JSON.stringify(data));
 };
 
-export const checkSession = () => {
-  const session = JSON.parse(localStorage.getItem(CONFIG.SESSION_KEY));
+export const checkSession = (): boolean => {
+  const session = JSON.parse(localStorage.getItem(CONFIG.SESSION_KEY) as string);
   return session && Date.now() < session.expiry;
 };
 
-export const createSession = () => {
+export const createSession = (): void => {
   const expiry = Date.now() + CONFIG.SESSION_DURATION_MS;
   localStorage.setItem(CONFIG.SESSION_KEY, JSON.stringify({ expiry }));
 };

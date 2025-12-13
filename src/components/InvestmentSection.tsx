@@ -5,9 +5,39 @@ import {
 import {
   Banknote
 } from 'lucide-react';
-import {formatEUR,} from "../utils/utils.js";
+import {formatEUR,} from "../utils/utils";
 
-const CustomTooltipForInvestments = ({active, payload, label}) => {
+interface InvestmentData {
+  'Denumire ETF': string;
+  'Ticker': string;
+  'Alocare': number;
+  'Suma investita': number;
+  'Valoare actuala': number;
+  'Profit (€)': number;
+  'Profit (%)': number;
+  'Alocare actuala': number;
+  'TER': number;
+}
+
+interface InvestmentsSectionProps {
+  data: InvestmentData[];
+}
+
+interface CustomTooltipPayload {
+  name: string;
+  value: number;
+  fill?: string;
+  color?: string;
+  dataKey?: string;
+}
+
+interface CustomTooltipForInvestmentsProps {
+  active?: boolean;
+  payload?: CustomTooltipPayload[];
+  label?: string;
+}
+
+const CustomTooltipForInvestments: React.FC<CustomTooltipForInvestmentsProps> = ({active, payload, label}) => {
   if (active && payload && payload.length) {
     return (
       <div className="bg-slate-800 border border-slate-700 p-4 rounded-xl shadow-xl">
@@ -29,7 +59,7 @@ const CustomTooltipForInvestments = ({active, payload, label}) => {
   return null;
 };
 
-const InvestmentsSection = ({data}) => {
+const InvestmentsSection: React.FC<InvestmentsSectionProps> = ({data}) => {
   if (!data || data.length === 0) {
     return (
       <div className="mt-6 bg-slate-900/50 p-8 rounded-3xl border border-slate-800 text-center">
@@ -244,7 +274,7 @@ const InvestmentsSection = ({data}) => {
         <ResponsiveContainer width="100%" height={300}>
           <BarChart data={rebalancingData} layout="vertical" margin={{top: 5, right: 20, left: 10, bottom: 5}}>
             <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)"/>
-            <XAxis type="number" stroke="#94a3b8" fontSize={12} tickFormatter={(val) => formatEUR(val)}/>
+            <XAxis type="number" stroke="#94a3b8" fontSize={12} tickFormatter={(val: number) => formatEUR(val)}/>
             <YAxis type="category" dataKey="name" stroke="#94a3b8" fontSize={12} width={80}/>
             <Tooltip
               content={({active, payload, label}) => {
@@ -322,7 +352,7 @@ const InvestmentsSection = ({data}) => {
             <BarChart data={profitPercentageData} margin={{top: 5, right: 20, left: -10, bottom: 5}}>
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)"/>
               <XAxis dataKey="name" stroke="#94a3b8" fontSize={12}/>
-              <YAxis stroke="#94a3b8" fontSize={12} tickFormatter={(value) => `${value}%`}/>
+              <YAxis stroke="#94a3b8" fontSize={12} tickFormatter={(value: number) => `${value}%`}/>
               <Tooltip content={<CustomTooltipForInvestments/>} cursor={{fill: 'rgba(148, 163, 184, 0.1)'}}/>
               <Bar dataKey="Profit (%)">
                 {profitPercentageData.map((entry, index) => (

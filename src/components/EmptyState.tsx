@@ -3,7 +3,11 @@ import {
    Activity, RefreshCcw
 } from 'lucide-react';
 
-const EmptyState = ({ onSync }) => (
+interface EmptyStateProps {
+  onSync: () => void;
+}
+
+const EmptyState: React.FC<EmptyStateProps> = ({ onSync }) => (
   <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 p-4 flex items-center justify-center">
     <div className="bg-slate-900/50 p-12 rounded-3xl border border-slate-800 max-w-lg shadow-2xl backdrop-blur-xl text-center">
       <div className="mb-6 flex justify-center">

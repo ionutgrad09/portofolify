@@ -4,8 +4,13 @@ import {
   RefreshCcw
 } from 'lucide-react';
 
+interface SyncModalProps {
+  isOpen: boolean;
+  status: string;
+  onClose: () => void;
+}
 
-const SyncModal = ({isOpen, status, onClose}) => {
+const SyncModal: React.FC<SyncModalProps> = ({isOpen, status, onClose}) => {
   if (!isOpen) {
     return null;
   }

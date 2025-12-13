@@ -1,11 +1,46 @@
-import {parseLine, parseNum} from "./utils.js";
+import {parseLine, parseNum} from "./utils";
 
-export const processWealthCSVData = (csvText) => {
+interface WealthData {
+  date: string;
+  ron: number;
+  eur: number;
+  gainLoss: number;
+  investments: number;
+  cash: number;
+  comment: string;
+}
+
+interface CashSplitData {
+  sursa: string;
+  ron: number;
+  eur: number;
+  totalEur: number;
+}
+
+interface InvestmentData {
+  'Denumire ETF': string;
+  'Ticker': string;
+  'Alocare': number;
+  'Suma investita': number;
+  'Valoare actuala': number;
+  profitEUR: number;
+  'Profit (%)': number;
+  'Alocare actuala': number;
+  'TER': number;
+}
+
+interface AssetData {
+  date: string;
+  assets: { [key: string]: number };
+  total: number;
+}
+
+export const processWealthCSVData = (csvText: string): WealthData[] => {
   const lines = csvText.split('\n').filter(line => line.trim() !== '');
   if (lines.length < 2) return [];
 
   const headers = parseLine(lines[0]).map(h => h.toLowerCase().trim());
-  const getIndex = (keywords) => headers.findIndex(h => keywords.some(k => h.includes(k)));
+  const getIndex = (keywords: string[]): number => headers.findIndex(h => keywords.some(k => h.includes(k)));
 
   const idxDate = getIndex(['date', 'data']);
   const idxRon = headers.findIndex(h => h.includes('ron') && !h.includes('gain') && !h.includes('loss'));
@@ -19,7 +54,7 @@ export const processWealthCSVData = (csvText) => {
     throw new Error("Format Istoric invalid.");
   }
 
-  const newData = lines.slice(1).map(line => {
+  const newData = lines.slice(1).map((line): WealthData | null => {
     const cols = parseLine(line);
     if (cols.length < 2) return null;
 
@@ -32,20 +67,20 @@ export const processWealthCSVData = (csvText) => {
       cash: idxCash !== -1 ? parseNum(cols[idxCash]) : 0,
       comment: idxComment !== -1 ? cols[idxComment].replace(/^"|"$/g, '') : ''
     };
-  }).filter(item => item !== null && item.date);
+  }).filter((item): item is WealthData => item !== null && !!item.date);
 
   newData.sort((a, b) => {
     const [dayA, monthA, yearA] = a.date.split('.').map(Number);
     const [dayB, monthB, yearB] = b.date.split('.').map(Number);
     const dateA = new Date(yearA, monthA - 1, dayA);
     const dateB = new Date(yearB, monthB - 1, dayB);
-    return dateA - dateB;
+    return dateA.getTime() - dateB.getTime();
   });
 
   return newData;
 };
 
-export const processCashSplitCSVData = (csvText) => {
+export const processCashSplitCSVData = (csvText: string): CashSplitData[] => {
   const lines = csvText.split('\n').filter(line => line.trim() !== '');
   if (lines.length < 2) return [];
 
@@ -58,7 +93,7 @@ export const processCashSplitCSVData = (csvText) => {
     throw new Error("Format Cash Split invalid.");
   }
 
-  return lines.slice(1).map((line, index) => {
+  return lines.slice(1).map((line, index): CashSplitData | null => {
     if (index > 16) return null;
     const cols = parseLine(line);
     if (cols.length < 2) return null;
@@ -78,15 +113,15 @@ export const processCashSplitCSVData = (csvText) => {
       eur: eurValue,
       totalEur: eurValue + (leiValue / 5)
     };
-  }).filter(item => item !== null && (item.ron > 0 || item.eur > 0));
+  }).filter((item): item is CashSplitData => item !== null && (item.ron > 0 || item.eur > 0));
 };
 
-export const processInvestmentsCSVData = (csvText) => {
+export const processInvestmentsCSVData = (csvText: string): InvestmentData[] => {
   const lines = csvText.split('\n').filter(line => line.trim() !== '');
   if (lines.length < 2) return [];
 
   const headers = parseLine(lines[0]);
-  const getIndex = (keywords) => headers.findIndex(h => keywords.some(k => h.toLowerCase().includes(k)));
+  const getIndex = (keywords: string[]): number => headers.findIndex(h => keywords.some(k => h.toLowerCase().includes(k)));
 
   const indices = {
     name: getIndex(['denumire etf']),
@@ -100,7 +135,7 @@ export const processInvestmentsCSVData = (csvText) => {
     ter: getIndex(['ter %']),
   };
 
-  return lines.slice(1).map((line, index) => {
+  return lines.slice(1).map((line, index): InvestmentData | null => {
     if (index > 3) return null;
     const cols = parseLine(line);
     if (cols.length < headers.length) return null;
@@ -111,15 +146,15 @@ export const processInvestmentsCSVData = (csvText) => {
       'Alocare': parseNum(cols[indices.targetAllocation]),
       'Suma investita': parseNum(cols[indices.invested]),
       'Valoare actuala': parseNum(cols[indices.currentValue]),
-      'Profit (€)': parseNum(cols[indices.profitEur]),
+      profitEUR: parseNum(cols[indices.profitEur]),
       'Profit (%)': parseNum(cols[indices.profitPct]),
       'Alocare actuala': parseNum(cols[indices.currentAllocation]),
       'TER': parseNum(cols[indices.ter]),
     };
-  }).filter(item => item && item.Ticker !== 'N/A');
+  }).filter((item): item is InvestmentData => !!item && item.Ticker !== 'N/A');
 };
 
-export const processAssetsCSVData = (csvText) => {
+export const processAssetsCSVData = (csvText: string): AssetData[] => {
   const lines = csvText.split('\n').filter(line => line.trim() !== '');
   if (lines.length < 2) return [];
 
@@ -130,12 +165,12 @@ export const processAssetsCSVData = (csvText) => {
     throw new Error("Format Assets invalid: Missing 'Data' column");
   }
 
-  const data = lines.slice(1).map(line => {
+  const data = lines.slice(1).map((line): AssetData | null => {
     const cols = parseLine(line);
     if (cols.length < 2) return null;
 
     const date = cols[dateIndex];
-    const assets = {};
+    const assets: { [key: string]: number } = {};
     let total = 0;
 
     headers.forEach((header, idx) => {
@@ -147,12 +182,12 @@ export const processAssetsCSVData = (csvText) => {
     });
 
     return { date, assets, total };
-  }).filter(item => item !== null && item.date);
+  }).filter((item): item is AssetData => item !== null && !!item.date);
 
   data.sort((a, b) => {
     const [dayA, monthA, yearA] = a.date.split('.').map(Number);
     const [dayB, monthB, yearB] = b.date.split('.').map(Number);
-    return new Date(yearA, monthA - 1, dayA) - new Date(yearB, monthB - 1, dayB);
+    return new Date(yearA, monthA - 1, dayA).getTime() - new Date(yearB, monthB - 1, dayB).getTime();
   });
 
   console.log("assets data", data)

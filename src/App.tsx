@@ -1,4 +1,4 @@
-import React, {useState, useEffect, useMemo} from 'react';
+import React, {useState, useEffect, useMemo, FormEvent} from 'react';
 import {
   LineChart,
   Line,
@@ -21,46 +21,90 @@ import {
   Building,
   Briefcase
 } from 'lucide-react';
-import HistoryTable from "./components/HistoryTable.jsx";
+import HistoryTable from "./components/HistoryTable";
 import {
   processAssetsCSVData,
   processCashSplitCSVData,
   processInvestmentsCSVData,
   processWealthCSVData
-} from "./utils/csv.js";
-import {formatEUR} from "./utils/utils.js";
-import InvestmentsSection from "./components/InvestmentSection.jsx";
-import CustomTooltip from "./components/CustomTooltip.jsx";
-import LoginForm from "./components/LoginForm.jsx";
-import SyncModal from "./components/SyncModal.jsx";
-import {CONFIG} from "./utils/config.js";
-import EmptyState from "./components/EmptyState.jsx";
-import CashSplitTable from "./components/CashSplitTable.jsx";
+} from "./utils/csv";
+import {formatEUR, getFromStorage, saveToStorage} from "./utils/utils";
+import InvestmentsSection from "./components/InvestmentSection";
+import CustomTooltip from "./components/CustomTooltip";
+import LoginForm from "./components/LoginForm";
+import SyncModal from "./components/SyncModal";
+import {CONFIG} from "./utils/config";
+import EmptyState from "./components/EmptyState";
+import CashSplitTable from "./components/CashSplitTable";
 
-const WealthTracker = () => {
-  const [historyData, setHistoryData] = useState(() => {
-    const saved = localStorage.getItem('wealthTrackerData');
-    return saved ? JSON.parse(saved) : [];
-  });
-  const [cashSplitData, setCashSplitData] = useState(() => {
-    const saved = localStorage.getItem('wealthTrackerCashSplit');
-    return saved ? JSON.parse(saved) : [];
-  });
-  const [investmentData, setInvestmentData] = useState(() => {
-    const saved = localStorage.getItem('wealthTrackerInvestmentData');
-    return saved ? JSON.parse(saved) : [];
-  });
-  const [assetsData, setAssetsData] = useState(() => {
-    const saved = localStorage.getItem('wealthAssetsData');
-    return saved ? JSON.parse(saved) : [];
-  });
+// Data Interfaces
+interface WealthData {
+  date: string;
+  ron: number;
+  eur: number;
+  gainLoss: number;
+  investments: number;
+  cash: number;
+  comment: string;
+}
 
-  const [loggedIn, setLoggedIn] = useState(false);
-  const [isSyncing, setIsSyncing] = useState(false);
-  const [syncStatus, setSyncStatus] = useState("Așteptare...");
+interface CashSplitData {
+  sursa: string;
+  ron: number;
+  eur: number;
+  totalEur: number;
+}
+
+interface InvestmentData {
+  'Denumire ETF': string;
+  'Ticker': string;
+  'Alocare': number;
+  'Suma investita': number;
+  'Valoare actuala': number;
+  'Profit (€)': number;
+  'Profit (%)': number;
+  'Alocare actuala': number;
+  'TER': number;
+}
+
+interface AssetData {
+  date: string;
+  assets: { [key: string]: number };
+  total: number;
+}
+
+interface MergedData extends WealthData {
+  assetsTotal: number;
+  assetsBreakdown: { [key: string]: number };
+  netWorth: number;
+}
+
+interface AssetAllocationData {
+  date: string;
+  investments: number;
+  cash: number;
+  assets: number;
+  total: number;
+}
+
+interface GrowthData extends MergedData {
+  growth: number;
+}
+
+
+const WealthTracker: React.FC = () => {
+  const [historyData, setHistoryData] = useState<WealthData[]>(() => getFromStorage<WealthData>(CONFIG.STORAGE_KEYS.DATA));
+  const [cashSplitData, setCashSplitData] = useState<CashSplitData[]>(() => getFromStorage<CashSplitData>(CONFIG.STORAGE_KEYS.CASH_SPLIT));
+  const [investmentData, setInvestmentData] = useState<InvestmentData[]>(() => getFromStorage<InvestmentData>(CONFIG.STORAGE_KEYS.INVESTMENT));
+  const [assetsData, setAssetsData] = useState<AssetData[]>(() => getFromStorage<AssetData>('wealthAssetsData'));
+
+
+  const [loggedIn, setLoggedIn] = useState<boolean>(false);
+  const [isSyncing, setIsSyncing] = useState<boolean>(false);
+  const [syncStatus, setSyncStatus] = useState<string>("Așteptare...");
 
   useEffect(() => {
-    const session = JSON.parse(localStorage.getItem(CONFIG.SESSION_KEY));
+    const session = JSON.parse(localStorage.getItem(CONFIG.SESSION_KEY) as string);
     if (session && Date.now() < session.expiry) {
       setLoggedIn(true);
     } else {
@@ -69,23 +113,26 @@ const WealthTracker = () => {
   }, []);
 
   useEffect(() => {
-    localStorage.setItem('wealthTrackerData', JSON.stringify(historyData));
+    saveToStorage(CONFIG.STORAGE_KEYS.DATA, historyData);
   }, [historyData]);
 
   useEffect(() => {
-    localStorage.setItem('wealthTrackerCashSplit', JSON.stringify(cashSplitData));
+    saveToStorage(CONFIG.STORAGE_KEYS.CASH_SPLIT, cashSplitData);
   }, [cashSplitData]);
 
   useEffect(() => {
-    localStorage.setItem('wealthTrackerInvestmentData', JSON.stringify(investmentData));
+    saveToStorage(CONFIG.STORAGE_KEYS.INVESTMENT, investmentData);
   }, [investmentData]);
 
   useEffect(() => {
-    localStorage.setItem('wealthAssetsData', JSON.stringify(assetsData));
+    saveToStorage('wealthAssetsData', assetsData);
   }, [assetsData]);
 
-  const handlePinSubmit = async (e) => {
+  const handlePinSubmit = async (e: FormEvent<HTMLFormElement>): Promise<void> => {
     e.preventDefault();
+    const target = e.target as typeof e.target & {
+      password: { value: string };
+    };
 
     const loginResult = await fetch("/.netlify/functions/auth", {
       method: "POST",
@@ -93,7 +140,7 @@ const WealthTracker = () => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        password: e.target.elements.password.value,
+        password: target.password.value,
       }),
     });
 
@@ -106,7 +153,7 @@ const WealthTracker = () => {
     }
   };
 
-  const fetchCSV = async (url) => {
+  const fetchCSV = async (url: string): Promise<string> => {
     const response = await fetch(url);
 
     if (!response.ok) {
@@ -116,7 +163,7 @@ const WealthTracker = () => {
     return response.text();
   };
 
-  const fetchAndProcessAllCSV = async () => {
+  const fetchAndProcessAllCSV = async (): Promise<void> => {
 
     setIsSyncing(true);
 
@@ -149,28 +196,28 @@ const WealthTracker = () => {
       setSyncStatus("Sincronizare finalizată cu succes!");
       setTimeout(() => setIsSyncing(false), 1000);
 
-    } catch (error) {
+    } catch (error: any) {
       console.error("Eroare la actualizarea automată:", error);
       setSyncStatus(`Eroare: ${error.message}.`);
     }
   };
 
-  const mergedData = useMemo(() => {
+  const mergedData: MergedData[] = useMemo(() => {
     if (historyData.length === 0 && assetsData.length === 0) return [];
 
     const allDates = new Set([...historyData.map(d => d.date), ...assetsData.map(d => d.date)]);
     const sortedDates = Array.from(allDates).sort((a, b) => {
       const [dayA, monthA, yearA] = a.split('.').map(Number);
       const [dayB, monthB, yearB] = b.split('.').map(Number);
-      return new Date(yearA, monthA - 1, dayA) - new Date(yearB, monthB - 1, dayB);
+      return new Date(yearA, monthA - 1, dayA).getTime() - new Date(yearB, monthB - 1, dayB).getTime();
     });
 
-    let lastHistory = { eur: 0, investments: 0, cash: 0, ron: 0, gainLoss: 0 };
-    let lastAssets = { total: 0, assets: {} };
+    let lastHistory: WealthData = {eur: 0, investments: 0, cash: 0, ron: 0, gainLoss: 0, date: '', comment: ''};
+    let lastAssets: AssetData = {total: 0, assets: {}, date: ''};
 
-    return sortedDates.map(date => {
-      const historyEntry = historyData.find(h => h.date === date);
-      const assetsEntry = assetsData.find(a => a.date === date);
+    return sortedDates.map(dateStr => {
+      const historyEntry = historyData.find(h => h.date === dateStr);
+      const assetsEntry = assetsData.find(a => a.date === dateStr);
 
       if (historyEntry) lastHistory = historyEntry;
       if (assetsEntry) lastAssets = assetsEntry;
@@ -178,7 +225,7 @@ const WealthTracker = () => {
       const netWorth = lastHistory.eur + lastAssets.total;
 
       return {
-        date,
+        dateStr,
         ...lastHistory,
         assetsTotal: lastAssets.total,
         assetsBreakdown: lastAssets.assets,
@@ -187,7 +234,7 @@ const WealthTracker = () => {
     });
   }, [historyData, assetsData]);
 
-  const assetAllocationData = mergedData.map(entry => {
+  const assetAllocationData: AssetAllocationData[] = mergedData.map(entry => {
     const total = entry.netWorth;
     const investmentsPct = total > 0 ? (entry.investments / total) * 100 : 0;
     const cashPct = total > 0 ? (entry.cash / total) * 100 : 0;
@@ -221,9 +268,9 @@ const WealthTracker = () => {
   const grandTotal = latestData.netWorth;
 
   const changeNetWorth = latestData.netWorth - previousData.netWorth;
-  const changePercent = previousData.netWorth !== 0 ? ((changeNetWorth / previousData.netWorth) * 100).toFixed(2) : 0;
+  const changePercent = previousData.netWorth !== 0 ? ((changeNetWorth / previousData.netWorth) * 100).toFixed(2) : '0';
 
-  const growthData = mergedData.map((entry, idx) => {
+  const growthData: GrowthData[] = mergedData.map((entry, idx) => {
     if (idx === 0) return {...entry, growth: 0};
     const prevNetWorth = mergedData[idx - 1].netWorth;
     const growth = prevNetWorth !== 0 ? ((entry.netWorth - prevNetWorth) / prevNetWorth) * 100 : 0;
@@ -240,11 +287,11 @@ const WealthTracker = () => {
     }))
     .sort((a, b) => b.value - a.value);
 
-  const latestAssetsEntry = assetsData.length > 0 ? assetsData[assetsData.length - 1] : { total: 0, assets: {} };
+  const latestAssetsEntry = assetsData.length > 0 ? assetsData[assetsData.length - 1] : {total: 0, assets: {}};
   const sortedAssetsPieData = Object.entries(latestAssetsEntry.assets || {})
     .map(([name, value], index) => ({
       name,
-      value,
+      value: value as number,
       color: ['#F59E0B', '#EF4444', '#3B82F6', '#10B981', '#8B5CF6', '#EC4899'][index % 6]
     }))
     .sort((a, b) => b.value - a.value);
@@ -294,7 +341,8 @@ const WealthTracker = () => {
               </div>
               <div className="text-3xl font-bold text-white mb-2">{formatEUR(grandTotal)}</div>
               <div className="text-blue-200 text-sm mb-2">Lichid: {formatEUR(latestData.eur)}</div>
-              <div className={`flex items-center gap-1 text-sm ${changeNetWorth >= 0 ? 'text-green-300' : 'text-red-300'}`}>
+              <div
+                className={`flex items-center gap-1 text-sm ${changeNetWorth >= 0 ? 'text-green-300' : 'text-red-300'}`}>
                 {changeNetWorth >= 0 ? <ArrowUp size={16}/> : <ArrowDown size={16}/>}
                 <span>{changePercent}% vs ultima perioadă</span>
               </div>
@@ -380,7 +428,7 @@ const WealthTracker = () => {
                   <CartesianGrid strokeDasharray="3 3" stroke="#334155"/>
                   <XAxis dataKey="date" stroke="#94a3b8" tick={{fontSize: 12}} angle={-45} textAnchor="end"
                          height={80}/>
-                  <YAxis stroke="#94a3b8" tickFormatter={(val) => `€${(val / 1000).toFixed(0)}k`}/>
+                  <YAxis stroke="#94a3b8" tickFormatter={(val: number) => `€${(val / 1000).toFixed(0)}k`}/>
                   <Tooltip content={<CustomTooltip/>}/>
                   <Area type="monotone" dataKey="netWorth" stroke="#3b82f6" strokeWidth={3} fillOpacity={1}
                         fill="url(#colorNetWorth)" name="Avere Netă"/>
@@ -414,7 +462,7 @@ const WealthTracker = () => {
                   <CartesianGrid strokeDasharray="3 3" stroke="#334155"/>
                   <XAxis dataKey="date" stroke="#94a3b8" tick={{fontSize: 12}} angle={-45} textAnchor="end"
                          height={80}/>
-                  <YAxis stroke="#94a3b8" tickFormatter={(val) => `€${(val / 1000).toFixed(0)}k`}/>
+                  <YAxis stroke="#94a3b8" tickFormatter={(val: number) => `€${(val / 1000).toFixed(0)}k`}/>
                   <Tooltip content={<CustomTooltip/>}/>
                   <Area type="monotone" dataKey="assetsTotal" stackId="a" stroke="#f59e0b" fillOpacity={1}
                         fill="url(#colorAssets)" name="Active Fizice"/>
@@ -440,7 +488,7 @@ const WealthTracker = () => {
                   <CartesianGrid strokeDasharray="3 3" stroke="#334155"/>
                   <XAxis dataKey="date" stroke="#94a3b8" tick={{fontSize: 12}} angle={-45} textAnchor="end"
                          height={60}/>
-                  <YAxis stroke="#94a3b8" tickFormatter={(val) => `${val}%`}/>
+                  <YAxis stroke="#94a3b8" tickFormatter={(val: number) => `${val}%`}/>
                   <Tooltip
                     content={({active, payload, label}) => {
                       if (active && payload && payload.length) {
@@ -451,11 +499,11 @@ const WealthTracker = () => {
                               <div key={index} className="flex items-center gap-2"
                                    style={{color: pld.color || "white"}}>
                                 <span>{pld.name}:</span>
-                                <span className="font-bold">{pld.value}%</span>
+                                <span className="font-bold">{pld.value as number}%</span>
                               </div>
                             ))}
                             <p className="text-xs text-slate-400 mt-2">Total
-                              EUR: {formatEUR(payload[0].payload.total)}</p>
+                              EUR: {formatEUR((payload[0].payload as AssetAllocationData).total)}</p>
                           </div>
                         );
                       }
@@ -485,7 +533,7 @@ const WealthTracker = () => {
                   <CartesianGrid strokeDasharray="3 3" stroke="#334155"/>
                   <XAxis dataKey="date" stroke="#94a3b8" tick={{fontSize: 10}} angle={-45} textAnchor="end"
                          height={60}/>
-                  <YAxis stroke="#94a3b8" tickFormatter={(val) => `${val.toFixed(0)}%`}/>
+                  <YAxis stroke="#94a3b8" tickFormatter={(val: number) => `${val.toFixed(0)}%`}/>
                   <Tooltip content={<CustomTooltip/>}/>
                   <Line type="monotone" dataKey="growth" stroke="#ec4899" strokeWidth={2}
                         dot={{fill: '#ec4899', r: 3}}/>
@@ -497,7 +545,8 @@ const WealthTracker = () => {
 
         {/* NEW ROW: Profit & Loss + Distribution */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-          <div className="lg:col-span-2 bg-slate-900/50 backdrop-blur-xl rounded-2xl p-6 shadow-2xl border border-slate-800">
+          <div
+            className="lg:col-span-2 bg-slate-900/50 backdrop-blur-xl rounded-2xl p-6 shadow-2xl border border-slate-800">
             <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
               <Activity className="text-purple-400" size={24}/>
               Profit & Pierdere Săptămânală
@@ -517,15 +566,16 @@ const WealthTracker = () => {
             </ResponsiveContainer>
           </div>
 
-          <div className="bg-slate-900/50 backdrop-blur-xl rounded-2xl p-6 shadow-2xl border border-slate-800 flex flex-col items-center justify-center">
+          <div
+            className="bg-slate-900/50 backdrop-blur-xl rounded-2xl p-6 shadow-2xl border border-slate-800 flex flex-col items-center justify-center">
             <h3 className="text-sm font-semibold text-slate-400 mb-2">Distribuție Totală</h3>
             <ResponsiveContainer width="100%" height={200}>
               <PieChart>
                 <Pie
                   data={[
-                    { name: 'Cash', value: latestData?.cash || 0, color: '#22c55e' },
-                    { name: 'Investiții', value: latestData?.investments || 0, color: '#a855f7' },
-                    { name: 'Active', value: totalAssetsEUR || 0, color: '#f59e0b' }
+                    {name: 'Cash', value: latestData?.cash || 0, color: '#22c55e'},
+                    {name: 'Investiții', value: latestData?.investments || 0, color: '#a855f7'},
+                    {name: 'Active', value: totalAssetsEUR || 0, color: '#f59e0b'}
                   ]}
                   cx="50%"
                   cy="50%"
@@ -535,14 +585,14 @@ const WealthTracker = () => {
                   dataKey="value"
                 >
                   {[
-                    { name: 'Cash', value: latestData?.cash || 0, color: '#22c55e' },
-                    { name: 'Investiții', value: latestData?.investments || 0, color: '#a855f7' },
-                    { name: 'Active', value: totalAssetsEUR || 0, color: '#f59e0b' }
+                    {name: 'Cash', value: latestData?.cash || 0, color: '#22c55e'},
+                    {name: 'Investiții', value: latestData?.investments || 0, color: '#a855f7'},
+                    {name: 'Active', value: totalAssetsEUR || 0, color: '#f59e0b'}
                   ].map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
+                    <Cell key={`cell-${index}`} fill={entry.color}/>
                   ))}
                 </Pie>
-                <Tooltip content={<CustomTooltip />} />
+                <Tooltip content={<CustomTooltip/>}/>
                 <Legend
                   verticalAlign="bottom"
                   height={36}
@@ -596,10 +646,10 @@ const WealthTracker = () => {
                         fontSize: '11px',
                       }}
                       formatter={(value, entry) => {
-                        const percentage = (entry.payload.value / totalCashEUR * 100).toFixed(1);
+                        const percentage = (entry.payload?.value / totalCashEUR * 100).toFixed(1);
                         return (
                           <span style={{color: entry.color, fontWeight: 'bold'}}>
-              {value}: {formatEUR(entry.payload.value)} ({percentage}%)
+              {value}: {formatEUR(entry.payload?.value)} ({percentage}%)
             </span>
                         );
                       }}
@@ -648,7 +698,7 @@ const WealthTracker = () => {
                         fontSize: '12px',
                       }}
                       formatter={(value, entry) => {
-                        const percentage = (entry.payload.value / totalAssetsEUR * 100).toFixed(1);
+                        const percentage = (entry.payload?.value / totalAssetsEUR * 100).toFixed(1);
                         return `${value} (${percentage}%)`;
                       }}
                     />
@@ -661,8 +711,9 @@ const WealthTracker = () => {
                 <ResponsiveContainer width="100%" height={300}>
                   <LineChart data={assetsEvolutionData}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#334155"/>
-                    <XAxis dataKey="date" stroke="#94a3b8" tick={{fontSize: 12}} angle={-45} textAnchor="end" height={60}/>
-                    <YAxis stroke="#94a3b8" tickFormatter={(val) => `€${(val / 1000).toFixed(0)}k`}/>
+                    <XAxis dataKey="date" stroke="#94a3b8" tick={{fontSize: 12}} angle={-45} textAnchor="end"
+                           height={60}/>
+                    <YAxis stroke="#94a3b8" tickFormatter={(val: number) => `€${(val / 1000).toFixed(0)}k`}/>
                     <Tooltip content={<CustomTooltip/>}/>
                     <Legend wrapperStyle={{paddingTop: 10}}/>
                     {assetKeys.map((key, index) => (

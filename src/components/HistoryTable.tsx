@@ -1,12 +1,26 @@
 import React from "react";
-import {formatEUR, formatRON} from "../utils/utils.js";
+import {formatEUR, formatRON} from "../utils/utils";
 
 
-const HistoryTable = ({ data }) => {
+interface HistoryData {
+  date: string;
+  ron: number;
+  eur: number;
+  gainLoss: number;
+  investments: number;
+  cash: number;
+  comment: string;
+}
+
+interface HistoryTableProps {
+  data: HistoryData[];
+}
+
+const HistoryTable: React.FC<HistoryTableProps> = ({ data }) => {
   const sortedData = [...data].sort((a, b) => {
     const [dayA, monthA, yearA] = a.date.split('.').map(Number);
     const [dayB, monthB, yearB] = b.date.split('.').map(Number);
-    return new Date(yearB, monthB - 1, dayB) - new Date(yearA, monthA - 1, dayA);
+    return new Date(yearB, monthB - 1, dayB).getTime() - new Date(yearA, monthA - 1, dayA).getTime();
   });
 
   return (
@@ -27,7 +41,7 @@ const HistoryTable = ({ data }) => {
               <div>
                 <span className="text-slate-400">RON:</span>
                 <span className="text-white ml-2 font-medium">{formatRON(row.ron)}</span>
-              </div>dev
+              </div>
               <div>
                 <span className="text-slate-400">EUR:</span>
                 <span className="text-white ml-2 font-medium">{formatEUR(row.eur)}</span>

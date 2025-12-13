@@ -1,7 +1,19 @@
-import {formatEUR, formatRON} from "../utils/utils.js";
+import {formatEUR, formatRON} from "../utils/utils";
+import React from "react";
 
+interface CashSplitData {
+  sursa: string;
+  ron: number;
+  eur: number;
+  totalEur: number;
+}
 
-const CashSplitTable = ({ data, totalCashEUR }) => {
+interface CashSplitTableProps {
+  data: CashSplitData[];
+  totalCashEUR: number;
+}
+
+const CashSplitTable: React.FC<CashSplitTableProps> = ({ data, totalCashEUR }) => {
   return (
     <div className="bg-slate-800/50 backdrop-blur-xl rounded-2xl p-4 sm:p-6 shadow-2xl border border-slate-800">
       <h2 className="text-xl font-bold text-white mb-4">Sursă Lichidități</h2>
@@ -27,7 +39,7 @@ const CashSplitTable = ({ data, totalCashEUR }) => {
             <div className="mt-2 pt-2 border-t border-slate-700/50">
               <span className="text-slate-400 text-xs">Proporție (din total CASH):</span>
               <span className="text-purple-300 ml-2 font-semibold">
-                {((row.totalEur / totalCashEUR) * 100).toFixed(1)}%
+                {totalCashEUR > 0 ? ((row.totalEur / totalCashEUR) * 100).toFixed(1) : 0}%
               </span>
             </div>
           </div>

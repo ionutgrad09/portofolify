@@ -1,6 +1,22 @@
-import {formatEUR} from "../utils/utils.js";
+import { formatEUR } from "../utils/utils";
+import React from "react";
 
-const CustomTooltip = ({ active, payload, label }) => {
+interface TooltipPayload {
+  name: string;
+  value: number;
+  color: string;
+  payload: {
+    comment?: string;
+  };
+}
+
+interface CustomTooltipProps {
+  active?: boolean;
+  payload?: TooltipPayload[];
+  label?: string;
+}
+
+const CustomTooltip: React.FC<CustomTooltipProps> = ({ active, payload, label }) => {
   if (active && payload && payload.length) {
     const entryData = payload[0].payload;
     return (
