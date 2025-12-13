@@ -316,7 +316,7 @@ const WealthTracker = () => {
               </div>
               <div className="flex items-center gap-1 text-sm text-purple-300">
                 <Target size={16}/>
-                <span>Portfolio diversificat</span>
+                <span>Investitii in {investmentData.length} ETFs</span>
               </div>
             </div>
           </div>
@@ -416,12 +416,12 @@ const WealthTracker = () => {
                          height={80}/>
                   <YAxis stroke="#94a3b8" tickFormatter={(val) => `€${(val / 1000).toFixed(0)}k`}/>
                   <Tooltip content={<CustomTooltip/>}/>
+                  <Area type="monotone" dataKey="assetsTotal" stackId="a" stroke="#f59e0b" fillOpacity={1}
+                        fill="url(#colorAssets)" name="Active Fizice"/>
                   <Area type="monotone" dataKey="investments" stackId="a" stroke="#a855f7" fillOpacity={1}
                         fill="url(#colorInvestments)" name="Investiții"/>
                   <Area type="monotone" dataKey="cash" stackId="a" stroke="#22c55e" fillOpacity={1}
                         fill="url(#colorCash)" name="Cash"/>
-                  <Area type="monotone" dataKey="assetsTotal" stackId="a" stroke="#f59e0b" fillOpacity={1}
-                        fill="url(#colorAssets)" name="Active Fizice"/>
                   <Legend wrapperStyle={{paddingTop: 10}}/>
                 </AreaChart>
               </ResponsiveContainer>
