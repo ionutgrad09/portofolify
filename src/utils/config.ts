@@ -5,6 +5,7 @@ interface Config {
     DATA: string;
     CASH_SPLIT: string;
     INVESTMENT: string;
+    ASSET_ALLOCATION: string;
   };
   COLORS: {
     PIE: string[];
@@ -19,6 +20,7 @@ export const CONFIG: Config = {
     DATA: 'wealthTrackerData',
     CASH_SPLIT: 'wealthTrackerCashSplit',
     INVESTMENT: 'wealthTrackerInvestmentData',
+    ASSET_ALLOCATION: 'wealthTrackerAssetAllocation',
   },
   COLORS: {
     PIE: ['#3b82f6', '#f59e0b', '#10b981', '#ef4444', '#a855f7', '#ec4899', '#6366f1', '#eab308'],

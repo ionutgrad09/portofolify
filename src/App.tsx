@@ -45,7 +45,7 @@ const WealthTracker: React.FC = () => {
   const [historyData, setHistoryData] = useState<WealthData[]>(() => getFromStorage<WealthData>(CONFIG.STORAGE_KEYS.DATA));
   const [cashSplitData, setCashSplitData] = useState<CashSplitData[]>(() => getFromStorage<CashSplitData>(CONFIG.STORAGE_KEYS.CASH_SPLIT));
   const [investmentData, setInvestmentData] = useState<InvestmentData[]>(() => getFromStorage<InvestmentData>(CONFIG.STORAGE_KEYS.INVESTMENT));
-  const [assetsData, setAssetsData] = useState<AssetData[]>(() => getFromStorage<AssetData>('wealthAssetsData'));
+  const [assetsData, setAssetsData] = useState<AssetData[]>(() => getFromStorage<AssetData>(CONFIG.STORAGE_KEYS.ASSET_ALLOCATION));
 
   // Add responsive flag for mobile layout
   const [isMobile, setIsMobile] = useState<boolean>(false);
@@ -83,10 +83,14 @@ const WealthTracker: React.FC = () => {
   }, [investmentData]);
 
   useEffect(() => {
-    saveToStorage('wealthAssetsData', assetsData);
+    saveToStorage(CONFIG.STORAGE_KEYS.ASSET_ALLOCATION, assetsData);
   }, [assetsData]);
 
   useEffect(() => {
+    localStorage.removeItem(CONFIG.STORAGE_KEYS.DATA)
+    localStorage.removeItem(CONFIG.STORAGE_KEYS.CASH_SPLIT)
+    localStorage.removeItem(CONFIG.STORAGE_KEYS.INVESTMENT)
+    localStorage.removeItem(CONFIG.STORAGE_KEYS.ASSET_ALLOCATION)
     fetchAndProcessAllCSV();
   }, []);
 
@@ -209,9 +213,9 @@ const WealthTracker: React.FC = () => {
 
     return {
       date: entry.date,
-      investments: parseFloat(investmentsPct.toFixed(2)),
-      cash: parseFloat(cashPct.toFixed(2)),
-      assets: parseFloat(assetsPct.toFixed(2)),
+      investments: parseFloat(investmentsPct?.toFixed(2)),
+      cash: parseFloat(cashPct?.toFixed(2)),
+      assets: parseFloat(assetsPct?.toFixed(2)),
       total: total,
     };
   });
@@ -235,7 +239,7 @@ const WealthTracker: React.FC = () => {
   const grandTotal = latestData.netWorth;
 
   const changeNetWorth = latestData.netWorth - previousData.netWorth;
-  const changePercent = previousData.netWorth !== 0 ? ((changeNetWorth / previousData.netWorth) * 100).toFixed(2) : '0';
+  const changePercent = previousData.netWorth !== 0 ? ((changeNetWorth / previousData.netWorth) * 100)?.toFixed(2) : '0';
 
   const growthData: GrowthData[] = mergedData.map((entry, idx) => {
     if (idx === 0) return {...entry, growth: 0};
@@ -326,7 +330,7 @@ const WealthTracker: React.FC = () => {
               </div>
               <div className="text-3xl font-bold text-white mb-2">{formatEUR(latestData.investments)}</div>
               <div
-                className="text-purple-200 text-sm mb-2">{grandTotal ? ((latestData.investments / grandTotal) * 100).toFixed(1) : 0}%
+                className="text-purple-200 text-sm mb-2">{grandTotal ? ((latestData.investments / grandTotal) * 100)?.toFixed(1) : 0}%
                 din total
               </div>
               <div className="flex items-center gap-1 text-sm text-purple-300">
@@ -345,7 +349,7 @@ const WealthTracker: React.FC = () => {
               </div>
               <div className="text-3xl font-bold text-white mb-2">{formatEUR(latestData.cash)}</div>
               <div className="text-green-200 text-sm mb-2">
-                {grandTotal ? ((latestData.cash / grandTotal) * 100).toFixed(1) : 0}% din total
+                {grandTotal ? ((latestData.cash / grandTotal) * 100)?.toFixed(1) : 0}% din total
               </div>
               <div className="flex items-center gap-1 text-sm text-green-300">
                 <Activity size={16}/>
@@ -363,7 +367,7 @@ const WealthTracker: React.FC = () => {
               </div>
               <div className="text-3xl font-bold text-white mb-2">{formatEUR(totalAssetsEUR)}</div>
               <div
-                className="text-orange-200 text-sm mb-2">{grandTotal ? ((totalAssetsEUR / grandTotal) * 100).toFixed(1) : 0}%
+                className="text-orange-200 text-sm mb-2">{grandTotal ? ((totalAssetsEUR / grandTotal) * 100)?.toFixed(1) : 0}%
                 din total
               </div>
               <div className="flex items-center gap-1 text-sm text-orange-300">
@@ -395,7 +399,7 @@ const WealthTracker: React.FC = () => {
                   <CartesianGrid strokeDasharray="3 3" stroke="#334155"/>
                   <XAxis dataKey="date" stroke="#94a3b8" tick={{fontSize: 12}} angle={-45} textAnchor="end"
                          height={80}/>
-                  <YAxis stroke="#94a3b8" tickFormatter={(val: number) => `€${(val / 1000).toFixed(0)}k`}/>
+                  <YAxis stroke="#94a3b8" tickFormatter={(val: number) => `€${(val / 1000)?.toFixed(0)}k`}/>
                   <Tooltip content={<CustomTooltip/>}/>
                   <Area type="monotone" dataKey="netWorth" stroke="#3b82f6" strokeWidth={3} fillOpacity={1}
                         fill="url(#colorNetWorth)" name="Avere Netă"/>
@@ -429,7 +433,7 @@ const WealthTracker: React.FC = () => {
                   <CartesianGrid strokeDasharray="3 3" stroke="#334155"/>
                   <XAxis dataKey="date" stroke="#94a3b8" tick={{fontSize: 12}} angle={-45} textAnchor="end"
                          height={80}/>
-                  <YAxis stroke="#94a3b8" tickFormatter={(val: number) => `€${(val / 1000).toFixed(0)}k`}/>
+                  <YAxis stroke="#94a3b8" tickFormatter={(val: number) => `€${(val / 1000)?.toFixed(0)}k`}/>
                   <Tooltip content={<CustomTooltip/>}/>
                   <Area type="monotone" dataKey="assetsTotal" stackId="a" stroke="#f59e0b" fillOpacity={1}
                         fill="url(#colorAssets)" name="Active Fizice"/>
@@ -500,7 +504,7 @@ const WealthTracker: React.FC = () => {
                   <CartesianGrid strokeDasharray="3 3" stroke="#334155"/>
                   <XAxis dataKey="date" stroke="#94a3b8" tick={{fontSize: 10}} angle={-45} textAnchor="end"
                          height={60}/>
-                  <YAxis stroke="#94a3b8" tickFormatter={(val: number) => `${val.toFixed(0)}%`}/>
+                  <YAxis stroke="#94a3b8" tickFormatter={(val: number) => `${val?.toFixed(0)}%`}/>
                   <Tooltip content={<CustomTooltip percentage/>}/>
                   <Line type="monotone" dataKey="growth" stroke="#ec4899" strokeWidth={2}
                         dot={{fill: '#ec4899', r: 3}}/>
@@ -613,7 +617,7 @@ const WealthTracker: React.FC = () => {
                         fontSize: isMobile ? '11px' : '12px',
                       }}
                       formatter={(value, entry) => {
-                        const percentage = (entry.payload?.value / totalCashEUR * 100).toFixed(1);
+                        const percentage = (entry.payload?.value / totalCashEUR * 100)?.toFixed(1);
                         return (
                           <span style={{color: (entry as any).color, fontWeight: 'bold'}}>
               {value}: {formatEUR(entry.payload?.value)} ({percentage}%)
@@ -667,7 +671,7 @@ const WealthTracker: React.FC = () => {
                         fontSize: isMobile ? '11px' : '12px',
                       }}
                       formatter={(value, entry) => {
-                        const percentage = (entry.payload?.value / totalAssetsEUR * 100).toFixed(1);
+                        const percentage = (entry.payload?.value / totalAssetsEUR * 100)?.toFixed(1);
                         return `${value} (${percentage}%)`;
                       }}
                     />
@@ -682,7 +686,7 @@ const WealthTracker: React.FC = () => {
                     <CartesianGrid strokeDasharray="3 3" stroke="#334155"/>
                     <XAxis dataKey="date" stroke="#94a3b8" tick={{fontSize: 12}} angle={-45} textAnchor="end"
                            height={60}/>
-                    <YAxis stroke="#94a3b8" tickFormatter={(val: number) => `€${(val / 1000).toFixed(0)}k`}/>
+                    <YAxis stroke="#94a3b8" tickFormatter={(val: number) => `€${(val / 1000)?.toFixed(0)}k`}/>
                     <Tooltip content={<CustomTooltip/>}/>
                     <Legend wrapperStyle={{paddingTop: 10}}/>
                     {assetKeys.map((key, index) => (

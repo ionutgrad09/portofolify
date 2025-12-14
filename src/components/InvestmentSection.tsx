@@ -35,7 +35,7 @@ const CustomTooltipForInvestments: React.FC<CustomTooltipForInvestmentsProps> = 
             <span className="font-bold">
                 {pld.dataKey === 'profitEur'
                   ? formatEUR(pld.value)
-                  : `${pld.value.toFixed(2)}%`
+                  : `${pld.value?.toFixed(2)}%`
                 }
               </span>
           </div>
@@ -55,8 +55,6 @@ const InvestmentsSection: React.FC<InvestmentsSectionProps> = ({data}) => {
       </div>
     );
   }
-
-  console.log("data investment", data)
 
   const totalInvested = data.reduce((acc, curr) => acc + curr.sumaInvestita, 0);
   const totalCurrentValue = data.reduce((acc, curr) => acc + curr.valoareActuala, 0);
@@ -117,7 +115,7 @@ const InvestmentsSection: React.FC<InvestmentsSectionProps> = ({data}) => {
         <div className="bg-slate-800/50 p-5 rounded-2xl">
           <p className="text-sm text-slate-400 mb-1">Randament Total</p>
           <p
-            className={`text-2xl font-bold ${totalProfitPercentage >= 0 ? 'text-green-400' : 'text-red-400'}`}>{totalProfitPercentage.toFixed(2)}%</p>
+            className={`text-2xl font-bold ${totalProfitPercentage >= 0 ? 'text-green-400' : 'text-red-400'}`}>{totalProfitPercentage?.toFixed(2)}%</p>
         </div>
       </div>
 
@@ -156,13 +154,13 @@ const InvestmentsSection: React.FC<InvestmentsSectionProps> = ({data}) => {
                 <div>
                   <span className="text-slate-400 text-xs">Profit (€):</span>
                   <p className={`font-medium ${item.profitEur >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                    {item.profitEur.toFixed(2)}
+                    {item.profitEur?.toFixed(2)}
                   </p>
                 </div>
                 <div className="col-span-2">
                   <span className="text-slate-400 text-xs">Profit (%):</span>
                   <p className={`font-bold text-lg ${item.profitPct >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                    {item.profitPct.toFixed(2)}%
+                    {item.profitPct?.toFixed(2)}%
                   </p>
                 </div>
               </div>
@@ -196,14 +194,14 @@ const InvestmentsSection: React.FC<InvestmentsSectionProps> = ({data}) => {
                 </td>
                 <td className="px-2 py-3 text-right font-mono text-white">{formatEUR(item.sumaInvestita)}</td>
                 <td className="px-2 py-3 text-right font-mono text-white">{formatEUR(item.valoareActuala)}</td>
-                <td className="px-2 py-3 text-right font-mono text-white">{item.alocare.toFixed(2)}%</td>
-                <td className="px-2 py-3 text-right font-mono text-white">{item.alocareActuala.toFixed(2)}%</td>
-                <td className="px-2 py-3 text-right font-mono text-white">{item.ter.toFixed(2)}%</td>
+                <td className="px-2 py-3 text-right font-mono text-white">{item.alocare?.toFixed(2)}%</td>
+                <td className="px-2 py-3 text-right font-mono text-white">{item.alocareActuala?.toFixed(2)}%</td>
+                <td className="px-2 py-3 text-right font-mono text-white">{item.ter?.toFixed(2)}%</td>
                 <td className={`px-2 py-3 text-right font-mono ${item.profitEur >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                  {item.profitEur.toFixed(2)}
+                  {item.profitEur?.toFixed(2)}
                 </td>
                 <td className={`px-2 py-3 text-right font-mono ${item.profitPct >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                  {item.profitPct.toFixed(2)}%
+                  {item.profitPct?.toFixed(2)}%
                 </td>
               </tr>
             ))}
@@ -236,9 +234,9 @@ const InvestmentsSection: React.FC<InvestmentsSectionProps> = ({data}) => {
                         {action}: <span className="font-bold">{formatEUR(Math.abs(amount))}</span>
                       </p>
                       <p className="text-xs text-slate-400 mt-1">
-                        Alocare curentă: {typeof currentAllocation === 'number' ? currentAllocation.toFixed(2) : 'N/A'}%
+                        Alocare curentă: {typeof currentAllocation === 'number' ? currentAllocation?.toFixed(2) : 'N/A'}%
                         |
-                        Alocare dorită: {typeof targetAllocation === 'number' ? targetAllocation.toFixed(2) : 'N/A'}%
+                        Alocare dorită: {typeof targetAllocation === 'number' ? targetAllocation?.toFixed(2) : 'N/A'}%
                       </p>
                     </div>
                   );
@@ -264,7 +262,7 @@ const InvestmentsSection: React.FC<InvestmentsSectionProps> = ({data}) => {
             <PieChart>
               <Pie data={allocationData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80}
                    labelLine={false}
-                   label={({name, percent}) => `${name} ${(percent * 100).toFixed(0)}%`}>
+                   label={({name, percent}) => `${name} ${(percent * 100)?.toFixed(0)}%`}>
                 {allocationData.map((entry, index) => (
                   <Cell key={`cell-${index}`} fill={INVESTMENT_PIE_COLORS[index % INVESTMENT_PIE_COLORS.length]}/>
                 ))}

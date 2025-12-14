@@ -119,7 +119,6 @@ export const processInvestmentsCSVData = (csvText: string): InvestmentData[] => 
     };
   }).filter((item): item is InvestmentData => !!item && item.ticker !== 'N/A');
 
-  console.log("Processed Investments Data:", result);
   return result;
 };
 

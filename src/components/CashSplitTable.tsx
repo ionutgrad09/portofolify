@@ -39,7 +39,7 @@ const CashSplitTable: React.FC<CashSplitTableProps> = ({ data, totalCashEUR }) =
             <div className="mt-2 pt-2 border-t border-slate-700/50">
               <span className="text-slate-400 text-xs">Proporție (din total CASH):</span>
               <span className="text-purple-300 ml-2 font-semibold">
-                {totalCashEUR > 0 ? ((row.totalEur / totalCashEUR) * 100).toFixed(1) : 0}%
+                {totalCashEUR > 0 ? ((row.totalEur / totalCashEUR) * 100)?.toFixed(1) : 0}%
               </span>
             </div>
           </div>

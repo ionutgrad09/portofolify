@@ -28,7 +28,7 @@ const CustomTooltip: React.FC<CustomTooltipProps> = ({active, payload, label, pe
           <div key={index} className="flex items-center gap-2 text-sm mb-1" style={{color: pld.color || "white"}}>
             <span>{pld.name}:</span>
             <span className="font-bold">
-              {pld.name.includes('%') || percentage ? `${pld.value.toFixed(2)}%` : ron ? formatRON(pld.value) : formatEUR(pld.value)}
+              {pld.name.includes('%') || percentage ? `${pld.value?.toFixed(2)}%` : ron ? formatRON(pld.value) : formatEUR(pld.value)}
             </span>
           </div>
         ))}
