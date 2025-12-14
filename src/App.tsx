@@ -47,6 +47,15 @@ const WealthTracker: React.FC = () => {
   const [investmentData, setInvestmentData] = useState<InvestmentData[]>(() => getFromStorage<InvestmentData>(CONFIG.STORAGE_KEYS.INVESTMENT));
   const [assetsData, setAssetsData] = useState<AssetData[]>(() => getFromStorage<AssetData>('wealthAssetsData'));
 
+  // Add responsive flag for mobile layout
+  const [isMobile, setIsMobile] = useState<boolean>(false);
+  useEffect(() => {
+    const onResize = () => setIsMobile(window.innerWidth < 640);
+    onResize();
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
+
 
   const [loggedIn, setLoggedIn] = useState<boolean>(false);
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
@@ -582,8 +591,8 @@ const WealthTracker: React.FC = () => {
                     <Pie
                       data={sortedCashSplitPieData}
                       cx="50%"
-                      cy="45%"
-                      outerRadius={90}
+                      cy={isMobile ? "40%" : "45%"}
+                      outerRadius={isMobile ? 90 : 120}
                       fill="#8884d8"
                       dataKey="value"
                       label={false}
@@ -595,18 +604,18 @@ const WealthTracker: React.FC = () => {
                     </Pie>
                     <Tooltip content={<CustomTooltip/>}/>
                     <Legend
-                      layout="horizontal"
-                      verticalAlign="bottom"
-                      align="center"
+                      layout={isMobile ? "horizontal" : "vertical"}
+                      verticalAlign={isMobile ? "bottom" : "middle"}
+                      align={isMobile ? "center" : "right"}
                       wrapperStyle={{
-                        paddingTop: '10px',
+                        paddingTop: isMobile ? 0 : '10px',
                         color: '#f1f5f9',
-                        fontSize: '11px',
+                        fontSize: isMobile ? '11px' : '12px',
                       }}
                       formatter={(value, entry) => {
                         const percentage = (entry.payload?.value / totalCashEUR * 100).toFixed(1);
                         return (
-                          <span style={{color: entry.color, fontWeight: 'bold'}}>
+                          <span style={{color: (entry as any).color, fontWeight: 'bold'}}>
               {value}: {formatEUR(entry.payload?.value)} ({percentage}%)
             </span>
                         );
@@ -637,7 +646,7 @@ const WealthTracker: React.FC = () => {
                       data={sortedAssetsPieData}
                       cx="50%"
                       cy="50%"
-                      outerRadius={80}
+                      outerRadius={120}
                       fill="#8884d8"
                       dataKey="value"
                       label={false}
@@ -647,13 +656,15 @@ const WealthTracker: React.FC = () => {
                       ))}
                     </Pie>
                     <Tooltip content={<CustomTooltip/>}/>
+
                     <Legend
-                      layout="vertical"
-                      verticalAlign="middle"
-                      align="right"
+                      layout={isMobile ? "horizontal" : "vertical"}
+                      verticalAlign={isMobile ? "bottom" : "middle"}
+                      align={isMobile ? "center" : "right"}
                       wrapperStyle={{
+                        paddingTop: isMobile ? 0 : '10px',
                         color: '#f1f5f9',
-                        fontSize: '12px',
+                        fontSize: isMobile ? '11px' : '12px',
                       }}
                       formatter={(value, entry) => {
                         const percentage = (entry.payload?.value / totalAssetsEUR * 100).toFixed(1);

@@ -30,7 +30,7 @@ const CustomTooltipForInvestments: React.FC<CustomTooltipForInvestmentsProps> = 
       <div className="bg-slate-800 border border-slate-700 p-4 rounded-xl shadow-xl">
         <p className="text-slate-300 font-medium mb-2">{label}</p>
         {payload.map((pld, index) => (
-          <div key={index} className="flex items-center gap-2 text-sm mb-1" style={{color: pld.fill || pld.color}}>
+          <div key={index} className="flex items-center gap-2 text-sm mb-1 text-white" style={{color: pld.fill || pld.color}}>
             <span>{pld.name}:</span>
             <span className="font-bold">
                 {pld.dataKey === 'profitEur'
