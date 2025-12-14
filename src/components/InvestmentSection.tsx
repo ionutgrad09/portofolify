@@ -2,22 +2,9 @@ import React from 'react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell
 } from 'recharts';
-import {
-  Banknote
-} from 'lucide-react';
-import {formatEUR,} from "../utils/utils";
-
-interface InvestmentData {
-  'Denumire ETF': string;
-  'Ticker': string;
-  'Alocare': number;
-  'Suma investita': number;
-  'Valoare actuala': number;
-  'Profit (€)': number;
-  'Profit (%)': number;
-  'Alocare actuala': number;
-  'TER': number;
-}
+import { Banknote } from 'lucide-react';
+import { formatEUR } from "../utils/utils";
+import type { InvestmentData } from "../types";
 
 interface InvestmentsSectionProps {
   data: InvestmentData[];
@@ -46,7 +33,7 @@ const CustomTooltipForInvestments: React.FC<CustomTooltipForInvestmentsProps> = 
           <div key={index} className="flex items-center gap-2 text-sm mb-1" style={{color: pld.fill || pld.color}}>
             <span>{pld.name}:</span>
             <span className="font-bold">
-                {pld.dataKey === 'Profit (€)'
+                {pld.dataKey === 'profitEur'
                   ? formatEUR(pld.value)
                   : `${pld.value.toFixed(2)}%`
                 }
@@ -69,35 +56,37 @@ const InvestmentsSection: React.FC<InvestmentsSectionProps> = ({data}) => {
     );
   }
 
-  const totalInvested = data.reduce((acc, curr) => acc + curr['Suma investita'], 0);
-  const totalCurrentValue = data.reduce((acc, curr) => acc + curr['Valoare actuala'], 0);
+  console.log("data investment", data)
+
+  const totalInvested = data.reduce((acc, curr) => acc + curr.sumaInvestita, 0);
+  const totalCurrentValue = data.reduce((acc, curr) => acc + curr.valoareActuala, 0);
   const totalProfit = totalCurrentValue - totalInvested;
   const totalProfitPercentage = totalInvested > 0 ? (totalProfit / totalInvested) * 100 : 0;
 
   const rebalancingData = data.map(item => {
-    const targetValue = (item['Alocare'] / 100) * totalCurrentValue;
-    const rebalanceAmount = targetValue - item['Valoare actuala'];
+    const targetValue = (item.alocare / 100) * totalCurrentValue;
+    const rebalanceAmount = targetValue - item.valoareActuala;
     return {
-      name: item.Ticker,
-      'Alocare actuala': item['Alocare actuala'],
-      'Alocare dorită': item['Alocare'],
-      'Rebalansare (€)': rebalanceAmount,
+      name: item.ticker,
+      alocareActuala: item.alocareActuala,
+      alocareDorita: item.alocare,
+      rebalansareEur: rebalanceAmount,
     };
   });
 
   const allocationData = data.map(item => ({
-    name: item.Ticker,
-    value: item['Alocare actuala']
+    name: item.ticker,
+    value: item.alocareActuala
   }));
 
   const profitData = data.map(item => ({
-    name: item.Ticker,
-    'Profit (€)': item['Profit (€)']
+    name: item.ticker,
+    profitEur: item.profitEur
   }));
 
   const profitPercentageData = data.map(item => ({
-    name: item.Ticker,
-    'Profit (%)': item['Profit (%)']
+    name: item.ticker,
+    profitPct: item.profitPct
   }));
 
   const INVESTMENT_PIE_COLORS = ['#2563eb', '#f97316', '#16a34a', '#dc2626', '#9333ea', '#db2777'];
@@ -132,51 +121,6 @@ const InvestmentsSection: React.FC<InvestmentsSectionProps> = ({data}) => {
         </div>
       </div>
 
-      {/* Details Table */}
-      {/*<div className="bg-slate-800/50 p-4 rounded-2xl mb-6">*/}
-      {/*  <h3 className="font-bold text-white text-lg mb-4">Detalii Active</h3>*/}
-      {/*  <div className="overflow-x-auto">*/}
-      {/*    <table className="w-full text-sm text-left">*/}
-      {/*      <thead className="text-xs text-slate-400 uppercase">*/}
-      {/*      <tr>*/}
-      {/*        <th className="px-2 py-2">Activ</th>*/}
-      {/*        <th className="px-2 py-2 text-right">Suma Investită</th>*/}
-      {/*        <th className="px-2 py-2 text-right">Val. Actuală</th>*/}
-      {/*        <th className="px-2 py-2 text-right">Alocare</th>*/}
-      {/*        <th className="px-2 py-2 text-right">Aloc. Actuală</th>*/}
-      {/*        <th className="px-2 py-2 text-right">TER</th>*/}
-      {/*        <th className="px-2 py-2 text-right">Profit (€)</th>*/}
-      {/*        <th className="px-2 py-2 text-right">Profit (%)</th>*/}
-      {/*      </tr>*/}
-      {/*      </thead>*/}
-      {/*      <tbody className="divide-y divide-slate-700/50">*/}
-      {/*      {data.map((item, index) => (*/}
-      {/*        <tr key={index} className="hover:bg-slate-800">*/}
-      {/*          <td className="px-2 py-3 font-medium text-white">*/}
-      {/*            <div className="flex flex-col">*/}
-      {/*              <span>{item['Denumire ETF']}</span>*/}
-      {/*              <span className="text-xs text-slate-400">{item.Ticker}</span>*/}
-      {/*            </div>*/}
-      {/*          </td>*/}
-      {/*          <td className="px-2 py-3 text-right font-mono text-white">{formatEUR(item['Suma investita'])}</td>*/}
-      {/*          <td className="px-2 py-3 text-right font-mono text-white">{formatEUR(item['Valoare actuala'])}</td>*/}
-      {/*          <td className="px-2 py-3 text-right font-mono text-white">{item['Alocare']?.toFixed(2)}%</td>*/}
-      {/*          <td className="px-2 py-3 text-right font-mono text-white">{item['Alocare actuala']?.toFixed(2)}%</td>*/}
-      {/*          <td className="px-2 py-3 text-right font-mono text-white">{item['TER']?.toFixed(2)}%</td>*/}
-      {/*          <td*/}
-      {/*            className={`px-2 py-3 text-right font-mono ${item['Profit (€)'] >= 0 ? 'text-green-400' : 'text-red-400'}`}>*/}
-      {/*            {item['Profit (€)'].toFixed(2)}*/}
-      {/*          </td>*/}
-      {/*          <td*/}
-      {/*            className={`px-2 py-3 text-right font-mono ${item['Profit (%)'] >= 0 ? 'text-green-400' : 'text-red-400'}`}>*/}
-      {/*            {item['Profit (%)'].toFixed(2)}%*/}
-      {/*          </td>*/}
-      {/*        </tr>*/}
-      {/*      ))}*/}
-      {/*      </tbody>*/}
-      {/*    </table>*/}
-      {/*  </div>*/}
-      {/*</div>*/}
       <div className="bg-slate-800/50 p-4 rounded-2xl mb-6">
         <h3 className="font-bold text-white text-lg mb-4">Detalii Active</h3>
 
@@ -185,40 +129,40 @@ const InvestmentsSection: React.FC<InvestmentsSectionProps> = ({data}) => {
           {data.map((item, index) => (
             <div key={index} className="bg-slate-700/30 rounded-xl p-4 border border-slate-700/50">
               <div className="mb-3">
-                <h4 className="font-bold text-white text-base">{item['Denumire ETF']}</h4>
-                <span className="text-xs text-slate-400">{item.Ticker}</span>
+                <h4 className="font-bold text-white text-base">{item.denumireEtf}</h4>
+                <span className="text-xs text-slate-400">{item.ticker}</span>
               </div>
               <div className="grid grid-cols-2 gap-x-3 gap-y-2 text-sm">
                 <div>
                   <span className="text-slate-400 text-xs">Suma Investită:</span>
-                  <p className="text-white font-medium">{formatEUR(item['Suma investita'])}</p>
+                  <p className="text-white font-medium">{formatEUR(item.sumaInvestita)}</p>
                 </div>
                 <div>
                   <span className="text-slate-400 text-xs">Val. Actuală:</span>
-                  <p className="text-white font-medium">{formatEUR(item['Valoare actuala'])}</p>
+                  <p className="text-white font-medium">{formatEUR(item.valoareActuala)}</p>
                 </div>
                 <div>
                   <span className="text-slate-400 text-xs">Alocare:</span>
-                  <p className="text-white font-medium">{item['Alocare']?.toFixed(2)}%</p>
+                  <p className="text-white font-medium">{item.alocare?.toFixed(2)}%</p>
                 </div>
                 <div>
                   <span className="text-slate-400 text-xs">Aloc. Actuală:</span>
-                  <p className="text-white font-medium">{item['Alocare actuala']?.toFixed(2)}%</p>
+                  <p className="text-white font-medium">{item.alocareActuala?.toFixed(2)}%</p>
                 </div>
                 <div>
                   <span className="text-slate-400 text-xs">TER:</span>
-                  <p className="text-white font-medium">{item['TER']?.toFixed(2)}%</p>
+                  <p className="text-white font-medium">{item.ter?.toFixed(2)}%</p>
                 </div>
                 <div>
                   <span className="text-slate-400 text-xs">Profit (€):</span>
-                  <p className={`font-medium ${item['Profit (€)'] >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                    {item['Profit (€)'].toFixed(2)}
+                  <p className={`font-medium ${item.profitEur >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                    {item.profitEur.toFixed(2)}
                   </p>
                 </div>
                 <div className="col-span-2">
                   <span className="text-slate-400 text-xs">Profit (%):</span>
-                  <p className={`font-bold text-lg ${item['Profit (%)'] >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                    {item['Profit (%)'].toFixed(2)}%
+                  <p className={`font-bold text-lg ${item.profitPct >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                    {item.profitPct.toFixed(2)}%
                   </p>
                 </div>
               </div>
@@ -246,20 +190,20 @@ const InvestmentsSection: React.FC<InvestmentsSectionProps> = ({data}) => {
               <tr key={index} className="hover:bg-slate-800">
                 <td className="px-2 py-3 font-medium text-white">
                   <div className="flex flex-col">
-                    <span>{item['Denumire ETF']}</span>
-                    <span className="text-xs text-slate-400">{item.Ticker}</span>
+                    <span>{item.denumireEtf}</span>
+                    <span className="text-xs text-slate-400">{item.ticker}</span>
                   </div>
                 </td>
-                <td className="px-2 py-3 text-right font-mono text-white">{formatEUR(item['Suma investita'])}</td>
-                <td className="px-2 py-3 text-right font-mono text-white">{formatEUR(item['Valoare actuala'])}</td>
-                <td className="px-2 py-3 text-right font-mono text-white">{item['Alocare']?.toFixed(2)}%</td>
-                <td className="px-2 py-3 text-right font-mono text-white">{item['Alocare actuala']?.toFixed(2)}%</td>
-                <td className="px-2 py-3 text-right font-mono text-white">{item['TER']?.toFixed(2)}%</td>
-                <td className={`px-2 py-3 text-right font-mono ${item['Profit (€)'] >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                  {item['Profit (€)'].toFixed(2)}
+                <td className="px-2 py-3 text-right font-mono text-white">{formatEUR(item.sumaInvestita)}</td>
+                <td className="px-2 py-3 text-right font-mono text-white">{formatEUR(item.valoareActuala)}</td>
+                <td className="px-2 py-3 text-right font-mono text-white">{item.alocare.toFixed(2)}%</td>
+                <td className="px-2 py-3 text-right font-mono text-white">{item.alocareActuala.toFixed(2)}%</td>
+                <td className="px-2 py-3 text-right font-mono text-white">{item.ter.toFixed(2)}%</td>
+                <td className={`px-2 py-3 text-right font-mono ${item.profitEur >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                  {item.profitEur.toFixed(2)}
                 </td>
-                <td className={`px-2 py-3 text-right font-mono ${item['Profit (%)'] >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                  {item['Profit (%)'].toFixed(2)}%
+                <td className={`px-2 py-3 text-right font-mono ${item.profitPct >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                  {item.profitPct.toFixed(2)}%
                 </td>
               </tr>
             ))}
@@ -279,11 +223,11 @@ const InvestmentsSection: React.FC<InvestmentsSectionProps> = ({data}) => {
             <Tooltip
               content={({active, payload, label}) => {
                 if (active && payload && payload.length) {
-                  const data = payload[0].payload;
-                  const amount = data['Rebalansare (€)'];
+                  const data = payload[0].payload as { rebalansareEur: number, alocareActuala: number, alocareDorita: number };
+                  const amount = data.rebalansareEur;
                   const action = amount > 0 ? 'Cumpără' : 'Vinde';
-                  const currentAllocation = data['Alocare actuala'];
-                  const targetAllocation = data['Alocare dorită'];
+                  const currentAllocation = data.alocareActuala;
+                  const targetAllocation = data.alocareDorita;
 
                   return (
                     <div className="bg-slate-800 border border-slate-700 p-3 rounded-xl shadow-xl text-sm">
@@ -303,9 +247,9 @@ const InvestmentsSection: React.FC<InvestmentsSectionProps> = ({data}) => {
               }}
               cursor={{fill: 'rgba(148, 163, 184, 0.1)'}}
             />
-            <Bar dataKey="Rebalansare (€)" name="Rebalansare">
+            <Bar dataKey="rebalansareEur" name="Rebalansare">
               {rebalancingData.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill={entry['Rebalansare (€)'] > 0 ? '#22c55e' : '#ef4444'}/>
+                <Cell key={`cell-${index}`} fill={entry.rebalansareEur > 0 ? '#22c55e' : '#ef4444'}/>
               ))}
             </Bar>
           </BarChart>
@@ -338,9 +282,9 @@ const InvestmentsSection: React.FC<InvestmentsSectionProps> = ({data}) => {
               <XAxis dataKey="name" stroke="#94a3b8" fontSize={12}/>
               <YAxis stroke="#94a3b8" fontSize={12}/>
               <Tooltip content={<CustomTooltipForInvestments/>} cursor={{fill: 'rgba(148, 163, 184, 0.1)'}}/>
-              <Bar dataKey="Profit (€)">
+              <Bar dataKey="profitEur" name="Profit (€)">
                 {profitData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={entry['Profit (€)'] >= 0 ? '#22c55e' : '#ef4444'}/>
+                  <Cell key={`cell-${index}`} fill={entry.profitEur >= 0 ? '#22c55e' : '#ef4444'}/>
                 ))}
               </Bar>
             </BarChart>
@@ -354,9 +298,9 @@ const InvestmentsSection: React.FC<InvestmentsSectionProps> = ({data}) => {
               <XAxis dataKey="name" stroke="#94a3b8" fontSize={12}/>
               <YAxis stroke="#94a3b8" fontSize={12} tickFormatter={(value: number) => `${value}%`}/>
               <Tooltip content={<CustomTooltipForInvestments/>} cursor={{fill: 'rgba(148, 163, 184, 0.1)'}}/>
-              <Bar dataKey="Profit (%)">
+              <Bar dataKey="profitPct" name="Profit (%)">
                 {profitPercentageData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={entry['Profit (%)'] >= 0 ? '#16a34a' : '#dc2626'}/>
+                  <Cell key={`cell-${index}`} fill={entry.profitPct >= 0 ? '#16a34a' : '#dc2626'}/>
                 ))}
               </Bar>
             </BarChart>

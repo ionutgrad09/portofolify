@@ -14,9 +14,10 @@ interface CustomTooltipProps {
   active?: boolean;
   payload?: TooltipPayload[];
   label?: string;
+  percentage?: boolean;
 }
 
-const CustomTooltip: React.FC<CustomTooltipProps> = ({ active, payload, label }) => {
+const CustomTooltip: React.FC<CustomTooltipProps> = ({ active, payload, label, percentage }) => {
   if (active && payload && payload.length) {
     const entryData = payload[0].payload;
     return (
@@ -26,7 +27,7 @@ const CustomTooltip: React.FC<CustomTooltipProps> = ({ active, payload, label })
           <div key={index} className="flex items-center gap-2 text-sm mb-1" style={{ color: pld.color || "white" }}>
             <span>{pld.name}:</span>
             <span className="font-bold">
-              {pld.name.includes('%') ? `${pld.value.toFixed(2)}%` : formatEUR(pld.value)}
+              {pld.name.includes('%') || percentage ? `${pld.value.toFixed(2)}%` : formatEUR(pld.value)}
             </span>
           </div>
         ))}

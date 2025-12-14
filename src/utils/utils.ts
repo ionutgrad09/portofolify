@@ -28,7 +28,9 @@ export const formatCurrency = (value: number): string => {
   }).format(value);
 };
 
-export const formatEUR = (value: number): string => {
+export const formatEUR = (value: number | undefined): string => {
+  if (value === undefined) return 'N/A';
+
   return `€${formatCurrency(value)}`;
 };
 

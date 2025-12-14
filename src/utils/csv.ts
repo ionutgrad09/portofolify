@@ -1,39 +1,5 @@
 import {parseLine, parseNum} from "./utils";
-
-interface WealthData {
-  date: string;
-  ron: number;
-  eur: number;
-  gainLoss: number;
-  investments: number;
-  cash: number;
-  comment: string;
-}
-
-interface CashSplitData {
-  sursa: string;
-  ron: number;
-  eur: number;
-  totalEur: number;
-}
-
-interface InvestmentData {
-  'Denumire ETF': string;
-  'Ticker': string;
-  'Alocare': number;
-  'Suma investita': number;
-  'Valoare actuala': number;
-  profitEUR: number;
-  'Profit (%)': number;
-  'Alocare actuala': number;
-  'TER': number;
-}
-
-interface AssetData {
-  date: string;
-  assets: { [key: string]: number };
-  total: number;
-}
+import type {WealthData, CashSplitData, InvestmentData, AssetData} from "../types";
 
 export const processWealthCSVData = (csvText: string): WealthData[] => {
   const lines = csvText.split('\n').filter(line => line.trim() !== '');
@@ -129,29 +95,32 @@ export const processInvestmentsCSVData = (csvText: string): InvestmentData[] => 
     targetAllocation: getIndex(['alocare']),
     invested: getIndex(['suma investita']),
     currentValue: getIndex(['valoare actuala']),
-    profitEur: getIndex(['profit (€)']),
-    profitPct: getIndex(['profit (%)']),
+    profitEur: getIndex(['profit (€)', 'profit (eur)', 'profit eur']),
+    profitPct: getIndex(['profit (%)', 'profit (%)']),
     currentAllocation: getIndex(['alocare actuala']),
-    ter: getIndex(['ter %']),
+    ter: getIndex(['ter %','ter']),
   };
 
-  return lines.slice(1).map((line, index): InvestmentData | null => {
+  const result  = lines.slice(1).map((line, index): InvestmentData | null => {
     if (index > 3) return null;
     const cols = parseLine(line);
     if (cols.length < headers.length) return null;
 
     return {
-      'Denumire ETF': cols[indices.name] || 'N/A',
-      'Ticker': cols[indices.ticker] || 'N/A',
-      'Alocare': parseNum(cols[indices.targetAllocation]),
-      'Suma investita': parseNum(cols[indices.invested]),
-      'Valoare actuala': parseNum(cols[indices.currentValue]),
-      profitEUR: parseNum(cols[indices.profitEur]),
-      'Profit (%)': parseNum(cols[indices.profitPct]),
-      'Alocare actuala': parseNum(cols[indices.currentAllocation]),
-      'TER': parseNum(cols[indices.ter]),
+      denumireEtf: cols[indices.name] || 'N/A',
+      ticker: cols[indices.ticker] || 'N/A',
+      alocare: parseNum(cols[indices.targetAllocation]),
+      sumaInvestita: parseNum(cols[indices.invested]),
+      valoareActuala: parseNum(cols[indices.currentValue]),
+      profitEur: parseNum(cols[indices.profitEur]),
+      profitPct: parseNum(cols[indices.profitPct]),
+      alocareActuala: parseNum(cols[indices.currentAllocation]),
+      ter: parseNum(cols[indices.ter]),
     };
-  }).filter((item): item is InvestmentData => !!item && item.Ticker !== 'N/A');
+  }).filter((item): item is InvestmentData => !!item && item.ticker !== 'N/A');
+
+  console.log("Processed Investments Data:", result);
+  return result;
 };
 
 export const processAssetsCSVData = (csvText: string): AssetData[] => {
@@ -190,6 +159,5 @@ export const processAssetsCSVData = (csvText: string): AssetData[] => {
     return new Date(yearA, monthA - 1, dayA).getTime() - new Date(yearB, monthB - 1, dayB).getTime();
   });
 
-  console.log("assets data", data)
   return data;
 };

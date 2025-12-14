@@ -36,61 +36,10 @@ import SyncModal from "./components/SyncModal";
 import {CONFIG} from "./utils/config";
 import EmptyState from "./components/EmptyState";
 import CashSplitTable from "./components/CashSplitTable";
+import type { WealthData, CashSplitData, InvestmentData, AssetData, MergedData, AssetAllocationData, GrowthData } from "./types";
 
-// Data Interfaces
-interface WealthData {
-  date: string;
-  ron: number;
-  eur: number;
-  gainLoss: number;
-  investments: number;
-  cash: number;
-  comment: string;
-}
-
-interface CashSplitData {
-  sursa: string;
-  ron: number;
-  eur: number;
-  totalEur: number;
-}
-
-interface InvestmentData {
-  'Denumire ETF': string;
-  'Ticker': string;
-  'Alocare': number;
-  'Suma investita': number;
-  'Valoare actuala': number;
-  'Profit (€)': number;
-  'Profit (%)': number;
-  'Alocare actuala': number;
-  'TER': number;
-}
-
-interface AssetData {
-  date: string;
-  assets: { [key: string]: number };
-  total: number;
-}
-
-interface MergedData extends WealthData {
-  assetsTotal: number;
-  assetsBreakdown: { [key: string]: number };
-  netWorth: number;
-}
-
-interface AssetAllocationData {
-  date: string;
-  investments: number;
-  cash: number;
-  assets: number;
-  total: number;
-}
-
-interface GrowthData extends MergedData {
-  growth: number;
-}
-
+// remove duplicated local interfaces in favor of shared types
+// ...existing code...
 
 const WealthTracker: React.FC = () => {
   const [historyData, setHistoryData] = useState<WealthData[]>(() => getFromStorage<WealthData>(CONFIG.STORAGE_KEYS.DATA));
@@ -128,6 +77,10 @@ const WealthTracker: React.FC = () => {
     saveToStorage('wealthAssetsData', assetsData);
   }, [assetsData]);
 
+  useEffect(() => {
+    fetchAndProcessAllCSV();
+  }, []);
+
   const handlePinSubmit = async (e: FormEvent<HTMLFormElement>): Promise<void> => {
     e.preventDefault();
     const target = e.target as typeof e.target & {
@@ -164,9 +117,7 @@ const WealthTracker: React.FC = () => {
   };
 
   const fetchAndProcessAllCSV = async (): Promise<void> => {
-
     setIsSyncing(true);
-
     try {
       // 1. Preluare și procesare Istoric Complet
       setSyncStatus("1/4: Se descarcă Istoricul Complet...");
@@ -184,7 +135,8 @@ const WealthTracker: React.FC = () => {
       setSyncStatus("3/4: Se descarcă Portofoliul de Investiții...");
       const investmentsCsvText = await fetchCSV("/.netlify/functions/investments");
       setSyncStatus("3/4: Procesează Portofoliul de Investiții...");
-      setInvestmentData(processInvestmentsCSVData(investmentsCsvText))
+      const parsedInvestments = processInvestmentsCSVData(investmentsCsvText);
+      setInvestmentData(parsedInvestments);
 
       // 4. Preluare și procesare Assets
       setSyncStatus("4/4: Se descarcă Activele...");
@@ -212,21 +164,27 @@ const WealthTracker: React.FC = () => {
       return new Date(yearA, monthA - 1, dayA).getTime() - new Date(yearB, monthB - 1, dayB).getTime();
     });
 
-    let lastHistory: WealthData = {eur: 0, investments: 0, cash: 0, ron: 0, gainLoss: 0, date: '', comment: ''};
-    let lastAssets: AssetData = {total: 0, assets: {}, date: ''};
+    let lastHistory: WealthData = { eur: 0, investments: 0, cash: 0, ron: 0, gainLoss: 0, date: '', comment: '' };
+    let lastAssets: AssetData = { total: 0, assets: {}, date: '' };
 
-    return sortedDates.map(dateStr => {
-      const historyEntry = historyData.find(h => h.date === dateStr);
-      const assetsEntry = assetsData.find(a => a.date === dateStr);
+    return sortedDates.map(date => {
+      const historyEntry = historyData.find(h => h.date === date);
+      const assetsEntry = assetsData.find(a => a.date === date);
 
       if (historyEntry) lastHistory = historyEntry;
       if (assetsEntry) lastAssets = assetsEntry;
 
       const netWorth = lastHistory.eur + lastAssets.total;
+      const { eur, investments, cash, ron, gainLoss, comment } = lastHistory;
 
       return {
-        dateStr,
-        ...lastHistory,
+        date,
+        eur,
+        investments,
+        cash,
+        ron,
+        gainLoss,
+        comment,
         assetsTotal: lastAssets.total,
         assetsBreakdown: lastAssets.assets,
         netWorth
@@ -534,7 +492,7 @@ const WealthTracker: React.FC = () => {
                   <XAxis dataKey="date" stroke="#94a3b8" tick={{fontSize: 10}} angle={-45} textAnchor="end"
                          height={60}/>
                   <YAxis stroke="#94a3b8" tickFormatter={(val: number) => `${val.toFixed(0)}%`}/>
-                  <Tooltip content={<CustomTooltip/>}/>
+                  <Tooltip content={<CustomTooltip percentage/>}/>
                   <Line type="monotone" dataKey="growth" stroke="#ec4899" strokeWidth={2}
                         dot={{fill: '#ec4899', r: 3}}/>
                 </LineChart>
