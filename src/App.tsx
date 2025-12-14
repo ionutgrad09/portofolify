@@ -254,10 +254,10 @@ const WealthTracker: React.FC = () => {
     }))
     .sort((a, b) => b.value - a.value);
 
-  const assetsEvolutionData = mergedData.map(entry => {
+  const assetsEvolutionData = assetsData.map(entry => {
     return {
       date: entry.date,
-      ...entry.assetsBreakdown
+      ...entry.assets
     };
   });
 
@@ -514,7 +514,7 @@ const WealthTracker: React.FC = () => {
                 <CartesianGrid stroke="#334155" strokeDasharray="3 3"/>
                 <XAxis dataKey="date" stroke="#f1f5f9"/>
                 <YAxis stroke="#f1f5f9"/>
-                <Tooltip content={<CustomTooltip/>} cursor={{fill: 'rgba(255,255,255,0.1)'}}/>
+                <Tooltip content={<CustomTooltip ron/>} cursor={{fill: 'rgba(255,255,255,0.1)'}}/>
                 <Bar dataKey="gainLoss" name="Profit">
                   {historyData.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.gainLoss >= 0 ? '#22c55e' : '#ef4444'}/>

@@ -1,4 +1,4 @@
-import { formatEUR } from "../utils/utils";
+import {formatEUR, formatRON} from "../utils/utils";
 import React from "react";
 
 interface TooltipPayload {
@@ -15,19 +15,20 @@ interface CustomTooltipProps {
   payload?: TooltipPayload[];
   label?: string;
   percentage?: boolean;
+  ron?: boolean;
 }
 
-const CustomTooltip: React.FC<CustomTooltipProps> = ({ active, payload, label, percentage }) => {
+const CustomTooltip: React.FC<CustomTooltipProps> = ({active, payload, label, percentage, ron}) => {
   if (active && payload && payload.length) {
     const entryData = payload[0].payload;
     return (
       <div className="bg-slate-800 border border-slate-700 p-4 rounded-xl shadow-xl">
         <p className="text-slate-300 font-medium mb-2">{label}</p>
         {payload.map((pld, index) => (
-          <div key={index} className="flex items-center gap-2 text-sm mb-1" style={{ color: pld.color || "white" }}>
+          <div key={index} className="flex items-center gap-2 text-sm mb-1" style={{color: pld.color || "white"}}>
             <span>{pld.name}:</span>
             <span className="font-bold">
-              {pld.name.includes('%') || percentage ? `${pld.value.toFixed(2)}%` : formatEUR(pld.value)}
+              {pld.name.includes('%') || percentage ? `${pld.value.toFixed(2)}%` : ron ? formatRON(pld.value) : formatEUR(pld.value)}
             </span>
           </div>
         ))}
