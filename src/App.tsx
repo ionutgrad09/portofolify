@@ -451,7 +451,7 @@ const WealthTracker: React.FC = () => {
                   <CartesianGrid strokeDasharray="3 3" stroke="#334155"/>
                   <XAxis dataKey="date" stroke="#94a3b8" tick={{fontSize: 12}} angle={-45} textAnchor="end"
                          height={60}/>
-                  <YAxis stroke="#94a3b8" tickFormatter={(val: number) => `${val}%`}/>
+                  <YAxis stroke="#94a3b8" tickFormatter={(val: number) => `${val}%`} allowDataOverflow/>
                   <Tooltip
                     content={({active, payload, label}) => {
                       if (active && payload && payload.length) {
@@ -531,7 +531,7 @@ const WealthTracker: React.FC = () => {
 
           <div
             className="bg-slate-900/50 backdrop-blur-xl rounded-2xl p-6 shadow-2xl border border-slate-800 flex flex-col items-center justify-center">
-            <h3 className="text-sm font-semibold text-slate-400 mb-2">Distribuție Totală</h3>
+            <h3 className="text-lg font-semibold text-slate-400 mb-2">Distribuție Totală</h3>
             <ResponsiveContainer width="100%" height={200}>
               <PieChart>
                 <Pie
@@ -560,13 +560,12 @@ const WealthTracker: React.FC = () => {
                   verticalAlign="bottom"
                   height={36}
                   iconType="circle"
-                  formatter={(value) => <span className="text-slate-300 text-xs ml-1">{value}</span>}
+                  formatter={(value) => <span className="text-slate-300 text-md ml-1 mt-2">{value}</span>}
                 />
               </PieChart>
             </ResponsiveContainer>
             <div className="text-center mt-2">
               <span className="text-2xl font-bold text-white">{formatEUR(grandTotal)}</span>
-              <p className="text-xs text-slate-400">Total Avere</p>
             </div>
           </div>
         </div>
