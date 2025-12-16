@@ -36,13 +36,9 @@ import {CONFIG} from "./utils/config";
 import EmptyState from "./components/EmptyState";
 import CashSplitTable from "./components/CashSplitTable";
 import KPICards from "./components/KPICards";
-import CumulativeProfitChart from "./components/CumulativeProfitChart";
 import ProjectionChart from "./components/ProjectionChart";
-import DiversificationRadar from "./components/DiversificationRadar";
 import type { WealthData, CashSplitData, InvestmentData, AssetData, MergedData, AssetAllocationData, GrowthData } from "./types";
 import MonthlyPerformanceHeatmap from "./components/MonthlyPerformanceHeatmap";
-import CashFlowWaterfall from "./components/CashFlowWaterfall";
-import SavingsRateEvolution from "./components/SavingsRateEvolution";
 import FinancialGoalsProgress from "./components/FinancialGoalsProgress";
 
 const WealthTracker: React.FC = () => {
