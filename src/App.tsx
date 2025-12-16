@@ -41,8 +41,12 @@ import ProjectionChart from "./components/ProjectionChart";
 import VolatilityChart from "./components/VolatilityChart";
 import DiversificationRadar from "./components/DiversificationRadar";
 import type { WealthData, CashSplitData, InvestmentData, AssetData, MergedData, AssetAllocationData, GrowthData } from "./types";
+import MonthlyPerformanceHeatmap from "./components/MonthlyPerformanceHeatmap";
+import CashFlowWaterfall from "./components/CashFlowWaterfall";
+import SavingsRateEvolution from "./components/SavingsRateEvolution";
+import FinancialGoalsProgress from "./components/FinancialGoalsProgress";
 
-const Portofolify: React.FC = () => {
+const WealthTracker: React.FC = () => {
   const [historyData, setHistoryData] = useState<WealthData[]>(() => getFromStorage<WealthData>(CONFIG.STORAGE_KEYS.DATA));
   const [cashSplitData, setCashSplitData] = useState<CashSplitData[]>(() => getFromStorage<CashSplitData>(CONFIG.STORAGE_KEYS.CASH_SPLIT));
   const [investmentData, setInvestmentData] = useState<InvestmentData[]>(() => getFromStorage<InvestmentData>(CONFIG.STORAGE_KEYS.INVESTMENT));
@@ -471,6 +475,17 @@ const Portofolify: React.FC = () => {
           />
         </div>
 
+        {/* NEW: Additional Financial Charts */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+          <MonthlyPerformanceHeatmap mergedData={mergedData} />
+          <CashFlowWaterfall mergedData={mergedData} />
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+          <SavingsRateEvolution historyData={historyData} />
+          <FinancialGoalsProgress mergedData={mergedData} />
+        </div>
+
         {/* Profit & Loss + Distribution */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
           <div
@@ -701,4 +716,4 @@ const Portofolify: React.FC = () => {
   );
 };
 
-export default Portofolify;
+export default WealthTracker;
