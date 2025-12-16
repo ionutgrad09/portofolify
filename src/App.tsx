@@ -474,7 +474,7 @@ const WealthTracker: React.FC = () => {
         {/* Profit & Loss + Distribution */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
           <div
-            className="lg:col-span-2 bg-slate-900/50 backdrop-blur-xl rounded-2xl p-6 shadow-2xl border border-slate-800">
+            className="lg:col-span-3 bg-slate-900/50 backdrop-blur-xl rounded-2xl p-6 shadow-2xl border border-slate-800">
             <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
               <Activity className="text-purple-400" size={24}/>
               Profit & Pierdere Săptămânală
