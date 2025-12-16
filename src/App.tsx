@@ -86,14 +86,6 @@ const WealthTracker: React.FC = () => {
     saveToStorage(CONFIG.STORAGE_KEYS.ASSET_ALLOCATION, assetsData);
   }, [assetsData]);
 
-  useEffect(() => {
-    localStorage.removeItem(CONFIG.STORAGE_KEYS.DATA)
-    localStorage.removeItem(CONFIG.STORAGE_KEYS.CASH_SPLIT)
-    localStorage.removeItem(CONFIG.STORAGE_KEYS.INVESTMENT)
-    localStorage.removeItem(CONFIG.STORAGE_KEYS.ASSET_ALLOCATION)
-    fetchAndProcessAllCSV();
-  }, []);
-
   const handlePinSubmit = async (e: FormEvent<HTMLFormElement>): Promise<void> => {
     e.preventDefault();
     const target = e.target as typeof e.target & {
