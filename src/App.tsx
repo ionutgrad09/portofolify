@@ -38,7 +38,6 @@ import CashSplitTable from "./components/CashSplitTable";
 import KPICards from "./components/KPICards";
 import CumulativeProfitChart from "./components/CumulativeProfitChart";
 import ProjectionChart from "./components/ProjectionChart";
-import VolatilityChart from "./components/VolatilityChart";
 import DiversificationRadar from "./components/DiversificationRadar";
 import type { WealthData, CashSplitData, InvestmentData, AssetData, MergedData, AssetAllocationData, GrowthData } from "./types";
 import MonthlyPerformanceHeatmap from "./components/MonthlyPerformanceHeatmap";
@@ -461,29 +460,15 @@ const WealthTracker: React.FC = () => {
         </div>
 
         {/* NEW: Advanced Analytics Charts Row */}
+        {/* Updated layout: Left column stacked (Waterfall, Heatmap, Diversification), Right column Projection */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-          <CumulativeProfitChart historyData={historyData} />
-          <ProjectionChart mergedData={mergedData} />
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-          <VolatilityChart mergedData={mergedData} />
-          <DiversificationRadar
-            latestData={latestData}
-            grandTotal={grandTotal}
-            investmentData={investmentData}
-          />
-        </div>
-
-        {/* NEW: Additional Financial Charts */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-          <MonthlyPerformanceHeatmap mergedData={mergedData} />
-          <CashFlowWaterfall mergedData={mergedData} />
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-          <SavingsRateEvolution historyData={historyData} />
-          <FinancialGoalsProgress mergedData={mergedData} />
+          <div className="space-y-6">
+            <FinancialGoalsProgress mergedData={mergedData} />
+            <MonthlyPerformanceHeatmap mergedData={mergedData} />
+          </div>
+          <div>
+            <ProjectionChart mergedData={mergedData} />
+          </div>
         </div>
 
         {/* Profit & Loss + Distribution */}
@@ -507,46 +492,6 @@ const WealthTracker: React.FC = () => {
                 </Bar>
               </BarChart>
             </ResponsiveContainer>
-          </div>
-
-          <div
-            className="bg-slate-900/50 backdrop-blur-xl rounded-2xl p-6 shadow-2xl border border-slate-800 flex flex-col items-center justify-center">
-            <h3 className="text-lg font-semibold text-slate-400 mb-2">Distribuție Totală</h3>
-            <ResponsiveContainer width="100%" height={200}>
-              <PieChart>
-                <Pie
-                  data={[
-                    {name: 'Cash', value: latestData?.cash || 0, color: '#22c55e'},
-                    {name: 'Investiții', value: latestData?.investments || 0, color: '#a855f7'},
-                    {name: 'Active', value: totalAssetsEUR || 0, color: '#f59e0b'}
-                  ]}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={60}
-                  outerRadius={80}
-                  paddingAngle={5}
-                  dataKey="value"
-                >
-                  {[
-                    {name: 'Cash', value: latestData?.cash || 0, color: '#22c55e'},
-                    {name: 'Investiții', value: latestData?.investments || 0, color: '#a855f7'},
-                    {name: 'Active', value: totalAssetsEUR || 0, color: '#f59e0b'}
-                  ].map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color}/>
-                  ))}
-                </Pie>
-                <Tooltip content={<CustomTooltip/>}/>
-                <Legend
-                  verticalAlign="bottom"
-                  height={36}
-                  iconType="circle"
-                  formatter={(value) => <span className="text-slate-300 text-md ml-1 mt-2">{value}</span>}
-                />
-              </PieChart>
-            </ResponsiveContainer>
-            <div className="text-center mt-2">
-              <span className="text-2xl font-bold text-white">{formatEUR(grandTotal)}</span>
-            </div>
           </div>
         </div>
 
@@ -717,3 +662,4 @@ const WealthTracker: React.FC = () => {
 };
 
 export default WealthTracker;
+
