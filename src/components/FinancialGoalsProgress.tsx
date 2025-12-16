@@ -125,7 +125,7 @@ const FinancialGoalsProgress: React.FC<FinancialGoalsProgressProps> = ({ mergedD
               </div>
 
               <div className="flex justify-between text-xs text-slate-400">
-                <span>Current: {formatEUR(currentWealth)}</span>
+                <span>Suma actuala: {formatEUR(currentWealth)}</span>
                 <span>
                   Rămâne: {formatEUR(Math.max(0, goal.target - currentWealth))}
                 </span>
