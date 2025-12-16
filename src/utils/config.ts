@@ -11,6 +11,10 @@ interface Config {
     PIE: string[];
     INVESTMENT: string[];
   };
+  EXCHANGE: {
+    RON_PER_EUR: number;
+    TTL_MS: number;
+  };
 }
 
 export const CONFIG: Config = {
@@ -26,4 +30,8 @@ export const CONFIG: Config = {
     PIE: ['#3b82f6', '#f59e0b', '#10b981', '#ef4444', '#a855f7', '#ec4899', '#6366f1', '#eab308'],
     INVESTMENT: ['#2563eb', '#f97316', '#16a34a', '#dc2626', '#9333ea', '#db2777'],
   },
+  EXCHANGE: {
+    RON_PER_EUR: 5.0,
+    TTL_MS: 12 * 60 * 60 * 1000, // 12 hours
+  }
 };

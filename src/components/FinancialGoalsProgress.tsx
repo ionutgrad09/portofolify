@@ -11,12 +11,17 @@ const FinancialGoalsProgress: React.FC<FinancialGoalsProgressProps> = ({ mergedD
   if (mergedData.length < 2) return null;
 
   const currentWealth = mergedData[mergedData.length - 1].netWorth;
+  const currentInvestments = mergedData[mergedData.length - 1].investments;
   const startWealth = mergedData[0].netWorth;
 
   // Calculate average monthly growth rate
   const monthsElapsed = mergedData.length / 4; // Assuming weekly data
   const totalGrowth = currentWealth - startWealth;
   const monthlyGrowthRate = totalGrowth / monthsElapsed / startWealth;
+
+  // Annual investment return rate (8% per year = 0.67% per month compounded)
+  const ANNUAL_INVESTMENT_RETURN = 0.08;
+  const MONTHLY_INVESTMENT_RETURN = Math.pow(1 + ANNUAL_INVESTMENT_RETURN, 1/12) - 1;
 
   // Tax rates
   const VAT_RATE = 0.21; // 21% TVA
@@ -35,10 +40,29 @@ const FinancialGoalsProgress: React.FC<FinancialGoalsProgressProps> = ({ mergedD
     // Calculate gross amount needed to achieve net target after taxes
     const grossTarget = netTarget / (1 - TOTAL_TAX_RATE);
 
-    if (monthlyGrowthRate <= 0) return Infinity;
-    const remaining = grossTarget - currentWealth;
-    if (remaining <= 0) return 0;
-    return Math.ceil(remaining / (currentWealth * monthlyGrowthRate));
+    if (monthlyGrowthRate <= 0 && MONTHLY_INVESTMENT_RETURN <= 0) return Infinity;
+
+    // Starting values
+    let currentTotal = currentWealth;
+    let currentInv = currentInvestments;
+    let months = 0;
+    const maxMonths = 600; // 50 years max
+
+    while (currentTotal < grossTarget && months < maxMonths) {
+      // Growth from investments (8% annual compounded monthly)
+      const investmentGrowth = currentInv * MONTHLY_INVESTMENT_RETURN;
+
+      // Growth from overall portfolio (historical rate)
+      const portfolioGrowth = currentTotal * monthlyGrowthRate;
+
+      // Update values
+      currentTotal += portfolioGrowth + investmentGrowth;
+      currentInv += investmentGrowth; // Investments grow at 8%
+
+      months++;
+    }
+
+    return months >= maxMonths ? Infinity : months;
   };
 
   return (
@@ -52,6 +76,10 @@ const FinancialGoalsProgress: React.FC<FinancialGoalsProgressProps> = ({ mergedD
         <p className="text-amber-300 text-xs flex items-center gap-2">
           <span>⚠️</span>
           <span>Calcule după TVA (21%) + Impozit (30%) = 51% taxe totale</span>
+        </p>
+        <p className="text-emerald-300 text-xs flex items-center gap-2 mt-1">
+          <span>📈</span>
+          <span>Include creștere investiții: +8% anual (compus lunar)</span>
         </p>
       </div>
 
@@ -83,6 +111,9 @@ const FinancialGoalsProgress: React.FC<FinancialGoalsProgressProps> = ({ mergedD
                     </p>
                   )}
                   {isAchieved && <p className="text-xs text-green-400 font-bold">✓ Atins!</p>}
+                  {monthsToGoal === Infinity && !isAchieved && (
+                    <p className="text-xs text-red-400">Imposibil cu rata actuală</p>
+                  )}
                 </div>
               </div>
 
@@ -111,7 +142,7 @@ const FinancialGoalsProgress: React.FC<FinancialGoalsProgressProps> = ({ mergedD
       </div>
 
       <div className="mt-6 bg-slate-800/50 p-4 rounded-lg">
-        <p className="text-slate-400 text-xs mb-2">📊 Statistici Progres</p>
+        <p className="text-slate-400 text-xs mb-3">📊 Statistici Progres</p>
         <div className="grid grid-cols-2 gap-4">
           <div>
             <p className="text-xs text-slate-500">Creștere Totală</p>
@@ -126,11 +157,23 @@ const FinancialGoalsProgress: React.FC<FinancialGoalsProgressProps> = ({ mergedD
             </p>
           </div>
         </div>
-        <div className="mt-3 pt-3 border-t border-slate-700">
-          <p className="text-xs text-slate-500 mb-1">Valoare NET Curentă (după taxe)</p>
-          <p className="text-xl font-bold text-emerald-400">
-            {formatEUR(currentWealth * (1 - TOTAL_TAX_RATE))}
-          </p>
+        <div className="grid grid-cols-2 gap-4 mt-3 pt-3 border-t border-slate-700">
+          <div>
+            <p className="text-xs text-slate-500">Investiții Actuale</p>
+            <p className="text-lg font-bold text-purple-400">
+              {formatEUR(currentInvestments)}
+            </p>
+            <p className="text-xs text-slate-500 mt-0.5">
+              ({((currentInvestments / currentWealth) * 100)?.toFixed(1)}% din total)
+            </p>
+          </div>
+          <div>
+            <p className="text-xs text-slate-500">Valoare NET Curentă</p>
+            <p className="text-lg font-bold text-emerald-400">
+              {formatEUR(currentWealth * (1 - TOTAL_TAX_RATE))}
+            </p>
+            <p className="text-xs text-slate-500 mt-0.5">După taxe (51%)</p>
+          </div>
         </div>
       </div>
     </div>
