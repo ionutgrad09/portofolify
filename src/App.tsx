@@ -331,7 +331,7 @@ const WealthTracker: React.FC = () => {
             <div className="bg-slate-900/50 backdrop-blur-xl rounded-2xl p-6 shadow-2xl border border-slate-800">
               <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
                 <TrendingUp className="text-blue-400" size={24}/>
-                Valoarea Totală a Averii (EUR)
+                Valoarea Totală
               </h2>
               <ResponsiveContainer width="100%" height={350}>
                 <AreaChart data={mergedData}>

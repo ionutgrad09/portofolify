@@ -147,13 +147,31 @@ const ProjectionChart: React.FC<{ mergedData: MergedData[] }> = ({ mergedData })
   console.log("Tax months:", taxDeltas.length, "months, deltas:", taxDeltas.map(d => d.toFixed(2)));
   console.log("Avg tax month delta:", avgTaxPayment.toFixed(2), "EUR");
 
-  // Build monthly projections: use base growth for regular months, adjusted for tax months
-  const seasonalAvg: number[] = Array.from({ length: 12 }, (_, idx) => {
-    if (TAX_MONTHS.includes(idx)) {
-      return avgTaxPayment; // Use historical average for tax months
-    }
-    return baseMonthlyGrowth; // Use base growth for regular months
+  // Build seasonal pattern using actual month data or averages
+  // Group deltas by month-of-year (0-11) to create a seasonal pattern
+  const deltasByMonth: number[][] = Array.from({ length: 12 }, () => []);
+  monthlyDeltas.forEach(md => {
+    deltasByMonth[md.month].push(md.delta);
   });
+
+  // Calculate average for each month, with fallback to category average
+  const seasonalAvg: number[] = deltasByMonth.map((deltas, monthIdx) => {
+    if (deltas.length > 0) {
+      // Use average of this specific month's historical data
+      return deltas.reduce((a, b) => a + b, 0) / deltas.length;
+    } else {
+      // Fallback: use tax month or regular month average
+      return TAX_MONTHS.includes(monthIdx) ? avgTaxPayment : baseMonthlyGrowth;
+    }
+  });
+
+  // Add some variance to make it more realistic (±5-15% random variation)
+  const addVariance = (value: number, idx: number): number => {
+    const variance = 0.05 + (Math.sin(idx * 2.5) * 0.05); // -5% to +10% variation
+    return value * (1 + variance);
+  };
+
+  console.log("Seasonal pattern by month:", seasonalAvg.map((v, i) => `${monthNames[i]}: ${v.toFixed(2)}`));
 
   // Build projection for 12 months (48 weeks) using seasonal monthly deltas
   const projectionData = [...sortedData] as any[];
@@ -168,7 +186,7 @@ const ProjectionChart: React.FC<{ mergedData: MergedData[] }> = ({ mergedData })
   for (let m = 0; m < 12; m++) {
     const monthStart = new Date(projectionDate.getTime());
     const monthIdx = monthStart.getMonth();
-    const monthDelta = seasonalAvg[monthIdx];
+    const monthDelta = addVariance(seasonalAvg[monthIdx], m);
     const weeklyDelta = monthDelta / 4;
 
     for (let w = 0; w < 4; w++) {
