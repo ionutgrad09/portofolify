@@ -12,21 +12,21 @@ interface MonthlyPerformanceHeatmapProps {
 const MonthlyPerformanceHeatmap: React.FC<MonthlyPerformanceHeatmapProps> = ({ mergedData }) => {
   // Parse dates and calculate monthly returns
   const monthlyReturns: { [key: string]: { [key: string]: number } } = {};
+  const monthlyDeltasEUR: { [key: string]: { [key: string]: number } } = {};
 
   mergedData.forEach((entry, idx) => {
     if (idx === 0) return;
 
     const [day, month, year] = entry.date.split('.').map(Number);
-    const monthKey = `${year}-${String(month).padStart(2, '0')}`;
     const prevNetWorth = mergedData[idx - 1].netWorth;
-    const returnPct = prevNetWorth > 0 ? ((entry.netWorth - prevNetWorth) / prevNetWorth) * 100 : 0;
+    const deltaEUR = entry.netWorth - prevNetWorth;
+    const returnPct = prevNetWorth > 0 ? (deltaEUR / prevNetWorth) * 100 : 0;
 
     if (!monthlyReturns[year]) monthlyReturns[year] = {};
-    if (!monthlyReturns[year][month]) {
-      monthlyReturns[year][month] = returnPct;
-    } else {
-      monthlyReturns[year][month] += returnPct;
-    }
+    if (!monthlyDeltasEUR[year]) monthlyDeltasEUR[year] = {};
+
+    monthlyReturns[year][month] = (monthlyReturns[year][month] || 0) + returnPct;
+    monthlyDeltasEUR[year][month] = (monthlyDeltasEUR[year][month] || 0) + deltaEUR;
   });
 
   const years = Object.keys(monthlyReturns).sort();
@@ -43,6 +43,9 @@ const MonthlyPerformanceHeatmap: React.FC<MonthlyPerformanceHeatmapProps> = ({ m
     if (value > -10) return 'bg-red-500';
     return 'bg-red-600';
   };
+
+  // Selection state for clicked cell
+  const [selected, setSelected] = React.useState<{ year: string; month: number; pct: number; eur: number } | null>(null);
 
   return (
     <div className="bg-slate-900/50 backdrop-blur-xl rounded-2xl p-6 shadow-2xl border border-slate-800">
@@ -69,11 +72,13 @@ const MonthlyPerformanceHeatmap: React.FC<MonthlyPerformanceHeatmapProps> = ({ m
               </div>
               {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(month => {
                 const value = monthlyReturns[year]?.[month] || 0;
+                const delta = monthlyDeltasEUR[year]?.[month] || 0;
                 return (
                   <div
                     key={month}
                     className={`w-16 h-12 ${getColor(value)} rounded flex items-center justify-center text-xs font-bold text-white hover:ring-2 hover:ring-white transition-all cursor-pointer group relative`}
-                    title={`${months[month - 1]} ${year}: ${value?.toFixed(2)}%`}
+                    title={`${months[month - 1]} ${year}: ${value?.toFixed(2)}% (${delta < 0 ? '-' : '+'}€${Math.abs(delta)?.toFixed(2)})`}
+                    onClick={() => setSelected({ year, month, pct: value, eur: delta })}
                   >
                     {value !== 0 && (
                       <span className="opacity-0 group-hover:opacity-100">
@@ -88,6 +93,7 @@ const MonthlyPerformanceHeatmap: React.FC<MonthlyPerformanceHeatmapProps> = ({ m
         </div>
       </div>
 
+      {/* Legend */}
       <div className="mt-4 flex items-center justify-center gap-2 text-xs">
         <span className="text-slate-400">Mai puțin</span>
         <div className="w-4 h-4 bg-red-600 rounded"></div>
@@ -97,6 +103,32 @@ const MonthlyPerformanceHeatmap: React.FC<MonthlyPerformanceHeatmapProps> = ({ m
         <div className="w-4 h-4 bg-green-600 rounded"></div>
         <span className="text-slate-400">Mai mult</span>
       </div>
+
+      {/* Details panel for selected month */}
+      {selected && (
+        <div className="mt-4 bg-slate-800/50 border border-slate-700 rounded-xl p-3 text-xs">
+          <div className="flex items-center justify-between">
+            <span className="text-slate-300 font-medium">
+              {months[selected.month - 1]} {selected.year}
+            </span>
+            <button className="text-slate-400 hover:text-white" onClick={() => setSelected(null)}>✕</button>
+          </div>
+          <div className="mt-2 grid grid-cols-2 gap-2">
+            <div>
+              <p className="text-slate-500">Percent</p>
+              <p className={`${selected.pct >= 0 ? 'text-green-400' : 'text-red-400'} font-bold`}>
+                {selected.pct > 0 ? '+' : ''}{selected.pct.toFixed(2)}%
+              </p>
+            </div>
+            <div>
+              <p className="text-slate-500">Sumă</p>
+              <p className={`${selected.eur >= 0 ? 'text-green-400' : 'text-red-400'} font-bold`}>
+                {selected.eur >= 0 ? '+' : '-'}€{Math.abs(selected.eur).toFixed(2)}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
