@@ -199,16 +199,33 @@ const WealthTracker: React.FC = () => {
 
   const assetAllocationData: AssetAllocationData[] = mergedData.map(entry => {
     const total = entry.netWorth;
-    const investmentsPct = total > 0 ? (entry.investments / total) * 100 : 0;
-    const cashPct = total > 0 ? (entry.cash / total) * 100 : 0;
-    const assetsPct = total > 0 ? (entry.assetsTotal / total) * 100 : 0;
+    const rawInvestments = total > 0 ? (entry.investments / total) * 100 : 0;
+    const rawCash = total > 0 ? (entry.cash / total) * 100 : 0;
+    const rawAssets = total > 0 ? (entry.assetsTotal / total) * 100 : 0;
+
+    const sum = rawInvestments + rawCash + rawAssets;
+    const factor = sum > 0 ? 100 / sum : 0;
+
+    // Normalize to ensure the stacked bars never exceed 100%
+    let investments = parseFloat((rawInvestments * factor).toFixed(2));
+    let cash = parseFloat((rawCash * factor).toFixed(2));
+    let assets = parseFloat((rawAssets * factor).toFixed(2));
+
+    // Fix floating-point drift by adjusting the last component
+    const drift = 100 - (investments + cash + assets);
+    assets = parseFloat((assets + drift).toFixed(2));
+
+    // Clamp to [0, 100]
+    investments = Math.min(100, Math.max(0, investments));
+    cash = Math.min(100, Math.max(0, cash));
+    assets = Math.min(100, Math.max(0, assets));
 
     return {
       date: entry.date,
-      investments: parseFloat(investmentsPct?.toFixed(2)),
-      cash: parseFloat(cashPct?.toFixed(2)),
-      assets: parseFloat(assetsPct?.toFixed(2)),
-      total: total,
+      investments,
+      cash,
+      assets,
+      total,
     };
   });
 
@@ -268,7 +285,6 @@ const WealthTracker: React.FC = () => {
 
   const assetKeys = Object.keys(latestAssetsEntry.assets || {});
 
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 p-4 md:p-6">
       <div className="max-w-[1800px] mx-auto">
@@ -311,26 +327,6 @@ const WealthTracker: React.FC = () => {
               </div>
             </div>
           </div>
-
-          <div
-            className="bg-gradient-to-br from-purple-600 to-purple-800 rounded-2xl p-6 shadow-2xl border border-purple-500/20 relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-16 -mt-16"></div>
-            <div className="relative">
-              <div className="flex items-center justify-between mb-3">
-                <PiggyBank className="text-purple-200" size={28}/>
-                <span className="text-purple-200 text-xs font-medium">INVESTIȚII BURSIERE</span>
-              </div>
-              <div className="text-3xl font-bold text-white mb-2">{formatEUR(latestData.investments)}</div>
-              <div
-                className="text-purple-200 text-sm mb-2">{grandTotal ? ((latestData.investments / grandTotal) * 100)?.toFixed(1) : 0}%
-                din total
-              </div>
-              <div className="flex items-center gap-1 text-sm text-purple-300">
-                <Target size={16}/>
-                <span>Investitii in {investmentData.length} ETFs</span>
-              </div>
-            </div>
-          </div>
           <div
             className="bg-gradient-to-br from-green-600 to-emerald-800 rounded-2xl p-6 shadow-2xl border border-green-500/20 relative overflow-hidden">
             <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-16 -mt-16"></div>
@@ -344,7 +340,7 @@ const WealthTracker: React.FC = () => {
                 {grandTotal ? ((latestData.cash / grandTotal) * 100)?.toFixed(1) : 0}% din total
               </div>
               <div className="flex items-center gap-1 text-sm text-green-300">
-                <Activity size={16}/>
+                <Target size={16}/>
                 <span>{cashSplitData.length} surse de cash</span>
               </div>
             </div>
@@ -364,10 +360,30 @@ const WealthTracker: React.FC = () => {
               </div>
               <div className="flex items-center gap-1 text-sm text-orange-300">
                 <Briefcase size={16}/>
-                <span>{assetsData.length} active înregistrate</span>
+                <span>{Object.keys(assetsData[0].assets).length} active înregistrate</span>
               </div>
             </div>
           </div>
+          <div
+            className="bg-gradient-to-br from-purple-600 to-purple-800 rounded-2xl p-6 shadow-2xl border border-purple-500/20 relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-16 -mt-16"></div>
+            <div className="relative">
+              <div className="flex items-center justify-between mb-3">
+                <PiggyBank className="text-purple-200" size={28}/>
+                <span className="text-purple-200 text-xs font-medium">INVESTIȚII BURSIERE</span>
+              </div>
+              <div className="text-3xl font-bold text-white mb-2">{formatEUR(latestData.investments)}</div>
+              <div
+                className="text-purple-200 text-sm mb-2">{grandTotal ? ((latestData.investments / grandTotal) * 100)?.toFixed(1) : 0}%
+                din total
+              </div>
+              <div className="flex items-center gap-1 text-sm text-purple-300">
+                <Activity size={16}/>
+                <span>Investitii in {investmentData.length} ETFs</span>
+              </div>
+            </div>
+          </div>
+
         </div>
 
         {/* Charts Grid */}
@@ -451,7 +467,7 @@ const WealthTracker: React.FC = () => {
                   <CartesianGrid strokeDasharray="3 3" stroke="#334155"/>
                   <XAxis dataKey="date" stroke="#94a3b8" tick={{fontSize: 12}} angle={-45} textAnchor="end"
                          height={60}/>
-                  <YAxis stroke="#94a3b8" tickFormatter={(val: number) => `${val}%`} allowDataOverflow/>
+                  <YAxis stroke="#94a3b8" tickFormatter={(val: number) => `${val}%`} domain={[0, 100]}/>
                   <Tooltip
                     content={({active, payload, label}) => {
                       if (active && payload && payload.length) {
@@ -475,8 +491,8 @@ const WealthTracker: React.FC = () => {
                   />
                   <Legend wrapperStyle={{paddingTop: 10}}/>
                   <Bar dataKey="investments" stackId="a" fill="#a855f7" name="Investiții %"/>
-                  <Bar dataKey="cash" stackId="a" fill="#22c55e" name="Cash %"/>
                   <Bar dataKey="assets" stackId="a" fill="#f59e0b" name="Active %"/>
+                  <Bar dataKey="cash" stackId="a" fill="#22c55e" name="Cash %"/>
                 </BarChart>
               </ResponsiveContainer>
               <p className="text-slate-400 text-sm mt-4 text-center">
