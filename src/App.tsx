@@ -526,7 +526,7 @@ const WealthTracker: React.FC = () => {
                       wrapperStyle={{
                         paddingTop: isMobile ? 0 : '10px',
                         color: '#f1f5f9',
-                        fontSize: isMobile ? '11px' : '12px',
+                        fontSize: isMobile ? '11px' : '16px',
                       }}
                       formatter={(value, entry) => {
                         const percentage = (entry.payload?.value / totalCashEUR * 100)?.toFixed(1);
@@ -580,7 +580,7 @@ const WealthTracker: React.FC = () => {
                       wrapperStyle={{
                         paddingTop: isMobile ? 0 : '10px',
                         color: '#f1f5f9',
-                        fontSize: isMobile ? '11px' : '12px',
+                        fontSize: isMobile ? '11px' : '16px',
                       }}
                       formatter={(value, entry) => {
                         const percentage = (entry.payload?.value / totalAssetsEUR * 100)?.toFixed(1);
