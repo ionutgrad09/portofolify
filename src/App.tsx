@@ -66,6 +66,7 @@ const WealthTracker: React.FC = () => {
       setLoggedIn(true);
     } else {
       localStorage.removeItem(CONFIG.SESSION_KEY);
+      localStorage.removeItem(CONFIG.SESSION_PASS_KEY);
     }
   }, []);
 
@@ -104,6 +105,8 @@ const WealthTracker: React.FC = () => {
     if (loginResult.status === 200) {
       const expiry = Date.now() + CONFIG.SESSION_DURATION_MS;
       localStorage.setItem(CONFIG.SESSION_KEY, JSON.stringify({expiry}));
+      // Save password for subsequent requests
+      localStorage.setItem(CONFIG.SESSION_PASS_KEY, target.password.value);
       setLoggedIn(true);
     } else {
       alert('PIN greșit! Încercă din nou.');
@@ -111,7 +114,16 @@ const WealthTracker: React.FC = () => {
   };
 
   const fetchCSV = async (url: string): Promise<string> => {
-    const response = await fetch(url);
+    const password = localStorage.getItem(CONFIG.SESSION_PASS_KEY);
+    if (!password) {
+      throw new Error('Nu există parolă salvată. Relogați-vă.');
+    }
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password })
+    });
 
     if (!response.ok) {
       throw new Error(`Eroare HTTP: ${response.status}`);
@@ -466,6 +478,8 @@ const WealthTracker: React.FC = () => {
             <ProjectionChart mergedData={mergedData} />
           </div>
         </div>
+
+        <MonthlyPerformanceHeatmap mergedData={mergedData} />
 
         {/* Profit & Loss + Distribution */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">

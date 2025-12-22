@@ -28,6 +28,8 @@ const FinancialGoalsProgress: React.FC<FinancialGoalsProgressProps> = ({ mergedD
   const startWealth = sortedData[0].netWorth;
   const currentWealth = sortedData[sortedData.length - 1].netWorth;
 
+  console.log("Start Wealth:", startWealth);
+  console.log("Current Wealth:", currentWealth);
   // ================================
   // Date-based months elapsed
   // ================================
@@ -39,6 +41,7 @@ const FinancialGoalsProgress: React.FC<FinancialGoalsProgressProps> = ({ mergedD
     (endDate.getMonth() - startDate.getMonth()) +
     (endDate.getDate() - startDate.getDate()) / 30;
 
+  console.log("Months Elapsed:", monthsElapsed);
   // ================================
   // Average monthly earning (€)
   // ================================
@@ -97,7 +100,7 @@ const FinancialGoalsProgress: React.FC<FinancialGoalsProgressProps> = ({ mergedD
                       ~
                       {yearsToGoal < 1
                         ? `${monthsToGoal} luni`
-                        : `${yearsToGoal.toFixed(1)} ani`}
+                        : `${monthsToGoal} luni (${yearsToGoal.toFixed(1)} ani)`}
                     </p>
                   )}
 

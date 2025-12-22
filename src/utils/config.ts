@@ -1,5 +1,6 @@
 interface Config {
   SESSION_KEY: string;
+  SESSION_PASS_KEY: string;
   SESSION_DURATION_MS: number;
   STORAGE_KEYS: {
     DATA: string;
@@ -19,6 +20,7 @@ interface Config {
 
 export const CONFIG: Config = {
   SESSION_KEY: 'wealthTrackerSession',
+  SESSION_PASS_KEY: 'wealthTrackerPassword',
   SESSION_DURATION_MS: 30 * 60 * 1000,
   STORAGE_KEYS: {
     DATA: 'wealthTrackerData',
