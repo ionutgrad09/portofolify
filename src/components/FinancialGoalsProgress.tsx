@@ -75,7 +75,7 @@ const FinancialGoalsProgress: React.FC<FinancialGoalsProgressProps> = ({ mergedD
         Progres către Obiective Financiare
       </h2>
 
-      <div className="space-y-6">
+      <div className="space-y-14">
         {goals.map((goal, idx) => {
           const progress = Math.min(100, (currentWealth / goal.target) * 100);
           const isAchieved = progress >= 100;

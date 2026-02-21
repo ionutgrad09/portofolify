@@ -407,7 +407,7 @@ const WealthTracker: React.FC = () => {
                 <PiggyBank className="text-green-400" size={24}/>
                 Alocarea Activelor (%) în Timp
               </h2>
-              <ResponsiveContainer width="100%" height={300}>
+              <ResponsiveContainer width="100%" height={315}>
                 <BarChart data={assetAllocationData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#334155"/>
                   <XAxis dataKey="date" stroke="#94a3b8" tick={{fontSize: 12}} angle={-45} textAnchor="end"
@@ -478,8 +478,6 @@ const WealthTracker: React.FC = () => {
             <ProjectionChart mergedData={mergedData} />
           </div>
         </div>
-
-        <MonthlyPerformanceHeatmap mergedData={mergedData} />
 
         {/* Profit & Loss + Distribution */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">

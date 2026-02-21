@@ -26,7 +26,6 @@ const formatEUR = (value: number): string => {
 };
 
 const ProjectionChart: React.FC<{ mergedData: MergedData[] }> = ({ mergedData }) => {
-  console.log("mergedData in ProjectionChart:", mergedData);
   if (!mergedData || mergedData.length < 2) {
     return null;
   }
@@ -125,8 +124,6 @@ const ProjectionChart: React.FC<{ mergedData: MergedData[] }> = ({ mergedData })
       daysInMonth: daysInMonth,
       isPartial: isPartial
     });
-
-    console.log(`${monthNames[data.month]} ${data.year}: days ${data.startDate.getDate()}-${data.endDate.getDate()} (${daysCovered}/${daysInMonth} days) = ${delta.toFixed(2)} EUR${isPartial ? ` → normalized: ${normalizedDelta.toFixed(2)} EUR` : ''} ${isTaxMonth ? '(TAX MONTH)' : ''}`);
   });
 
   // Calculate average monthly growth excluding tax months to get baseline
@@ -140,12 +137,6 @@ const ProjectionChart: React.FC<{ mergedData: MergedData[] }> = ({ mergedData })
   const avgTaxPayment = taxDeltas.length > 0
     ? taxDeltas.reduce((a, b) => a + b, 0) / taxDeltas.length
     : baseMonthlyGrowth * 0.3; // fallback: assume 30% of normal growth in tax months
-
-  console.log("=== MONTHLY ANALYSIS ===");
-  console.log("Non-tax months:", nonTaxDeltas.length, "months, deltas:", nonTaxDeltas.map(d => d.toFixed(2)));
-  console.log("Base monthly growth (non-tax):", baseMonthlyGrowth.toFixed(2), "EUR");
-  console.log("Tax months:", taxDeltas.length, "months, deltas:", taxDeltas.map(d => d.toFixed(2)));
-  console.log("Avg tax month delta:", avgTaxPayment.toFixed(2), "EUR");
 
   // Build seasonal pattern using actual month data or averages
   // Group deltas by month-of-year (0-11) to create a seasonal pattern
@@ -171,7 +162,6 @@ const ProjectionChart: React.FC<{ mergedData: MergedData[] }> = ({ mergedData })
     return value * (1 + variance);
   };
 
-  console.log("Seasonal pattern by month:", seasonalAvg.map((v, i) => `${monthNames[i]}: ${v.toFixed(2)}`));
 
   // Build projection for 12 months (48 weeks) using seasonal monthly deltas
   const projectionData = [...sortedData] as any[];

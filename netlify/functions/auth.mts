@@ -30,6 +30,7 @@ export default async (req: Request, context: Context) => {
     }
 
     const netlifyPass = process.env.PASS;
+    console.log("Netlify Pass:", netlifyPass);
 
     if ((netlifyPass && netlifyPass === password)) {
       return new Response(JSON.stringify({success: true}), {
