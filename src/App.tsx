@@ -17,9 +17,8 @@ import {
   Cell
 } from 'recharts';
 import {
-  TrendingUp, DollarSign, PiggyBank, Wallet, ArrowUp, ArrowDown, Activity, Target, Banknote, RefreshCcw,
-  Building,
-  Briefcase
+  TrendingUp, DollarSign, PiggyBank, Target, Banknote, RefreshCcw,
+  Building, Activity
 } from 'lucide-react';
 import HistoryTable from "./components/HistoryTable";
 import {
@@ -36,10 +35,11 @@ import SyncModal from "./components/SyncModal";
 import {CONFIG} from "./utils/config";
 import EmptyState from "./components/EmptyState";
 import CashSplitTable from "./components/CashSplitTable";
+import KPICards from "./components/KPICards";
+import ProjectionChart from "./components/ProjectionChart";
 import type { WealthData, CashSplitData, InvestmentData, AssetData, MergedData, AssetAllocationData, GrowthData } from "./types";
-
-// remove duplicated local interfaces in favor of shared types
-// ...existing code...
+import MonthlyPerformanceHeatmap from "./components/MonthlyPerformanceHeatmap";
+import FinancialGoalsProgress from "./components/FinancialGoalsProgress";
 
 const WealthTracker: React.FC = () => {
   const [historyData, setHistoryData] = useState<WealthData[]>(() => getFromStorage<WealthData>(CONFIG.STORAGE_KEYS.DATA));
@@ -56,7 +56,6 @@ const WealthTracker: React.FC = () => {
     return () => window.removeEventListener('resize', onResize);
   }, []);
 
-
   const [loggedIn, setLoggedIn] = useState<boolean>(false);
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
   const [syncStatus, setSyncStatus] = useState<string>("Așteptare...");
@@ -67,6 +66,7 @@ const WealthTracker: React.FC = () => {
       setLoggedIn(true);
     } else {
       localStorage.removeItem(CONFIG.SESSION_KEY);
+      localStorage.removeItem(CONFIG.SESSION_PASS_KEY);
     }
   }, []);
 
@@ -105,6 +105,8 @@ const WealthTracker: React.FC = () => {
     if (loginResult.status === 200) {
       const expiry = Date.now() + CONFIG.SESSION_DURATION_MS;
       localStorage.setItem(CONFIG.SESSION_KEY, JSON.stringify({expiry}));
+      // Save password for subsequent requests
+      localStorage.setItem(CONFIG.SESSION_PASS_KEY, target.password.value);
       setLoggedIn(true);
     } else {
       alert('PIN greșit! Încercă din nou.');
@@ -112,7 +114,16 @@ const WealthTracker: React.FC = () => {
   };
 
   const fetchCSV = async (url: string): Promise<string> => {
-    const response = await fetch(url);
+    const password = localStorage.getItem(CONFIG.SESSION_PASS_KEY);
+    if (!password) {
+      throw new Error('Nu există parolă salvată. Relogați-vă.');
+    }
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password })
+    });
 
     if (!response.ok) {
       throw new Error(`Eroare HTTP: ${response.status}`);
@@ -288,7 +299,7 @@ const WealthTracker: React.FC = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 p-4 md:p-6">
       <div className="max-w-[1800px] mx-auto">
-        {/* Header (DOAR SYNC) */}
+        {/* Header */}
         <div className="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div className="w-full sm:w-auto">
             <h1
@@ -308,83 +319,17 @@ const WealthTracker: React.FC = () => {
           </div>
         </div>
 
-        {/* KPI Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-          <div
-            className="bg-gradient-to-br from-blue-600 to-blue-800 rounded-2xl p-6 shadow-2xl border border-blue-500/20 relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-16 -mt-16"></div>
-            <div className="relative">
-              <div className="flex items-center justify-between mb-3">
-                <DollarSign className="text-blue-200" size={28}/>
-                <span className="text-blue-200 text-xs font-medium">AVERE NETĂ TOTALĂ</span>
-              </div>
-              <div className="text-3xl font-bold text-white mb-2">{formatEUR(grandTotal)}</div>
-              <div className="text-blue-200 text-sm mb-2">Lichid: {formatEUR(latestData.eur)}</div>
-              <div
-                className={`flex items-center gap-1 text-sm ${changeNetWorth >= 0 ? 'text-green-300' : 'text-red-300'}`}>
-                {changeNetWorth >= 0 ? <ArrowUp size={16}/> : <ArrowDown size={16}/>}
-                <span>{changePercent}% vs ultima perioadă</span>
-              </div>
-            </div>
-          </div>
-          <div
-            className="bg-gradient-to-br from-green-600 to-emerald-800 rounded-2xl p-6 shadow-2xl border border-green-500/20 relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-16 -mt-16"></div>
-            <div className="relative">
-              <div className="flex items-center justify-between mb-3">
-                <Wallet className="text-green-200" size={28}/>
-                <span className="text-green-200 text-xs font-medium">CASH TOTAL</span>
-              </div>
-              <div className="text-3xl font-bold text-white mb-2">{formatEUR(latestData.cash)}</div>
-              <div className="text-green-200 text-sm mb-2">
-                {grandTotal ? ((latestData.cash / grandTotal) * 100)?.toFixed(1) : 0}% din total
-              </div>
-              <div className="flex items-center gap-1 text-sm text-green-300">
-                <Target size={16}/>
-                <span>{cashSplitData.length} surse de cash</span>
-              </div>
-            </div>
-          </div>
-          <div
-            className="bg-gradient-to-br from-orange-600 to-red-800 rounded-2xl p-6 shadow-2xl border border-orange-500/20 relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-16 -mt-16"></div>
-            <div className="relative">
-              <div className="flex items-center justify-between mb-3">
-                <Building className="text-orange-200" size={28}/>
-                <span className="text-orange-200 text-xs font-medium">ACTIVE FIZICE / ALTELE</span>
-              </div>
-              <div className="text-3xl font-bold text-white mb-2">{formatEUR(totalAssetsEUR)}</div>
-              <div
-                className="text-orange-200 text-sm mb-2">{grandTotal ? ((totalAssetsEUR / grandTotal) * 100)?.toFixed(1) : 0}%
-                din total
-              </div>
-              <div className="flex items-center gap-1 text-sm text-orange-300">
-                <Briefcase size={16}/>
-                <span>{Object.keys(assetsData[0].assets).length} active înregistrate</span>
-              </div>
-            </div>
-          </div>
-          <div
-            className="bg-gradient-to-br from-purple-600 to-purple-800 rounded-2xl p-6 shadow-2xl border border-purple-500/20 relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-16 -mt-16"></div>
-            <div className="relative">
-              <div className="flex items-center justify-between mb-3">
-                <PiggyBank className="text-purple-200" size={28}/>
-                <span className="text-purple-200 text-xs font-medium">INVESTIȚII BURSIERE</span>
-              </div>
-              <div className="text-3xl font-bold text-white mb-2">{formatEUR(latestData.investments)}</div>
-              <div
-                className="text-purple-200 text-sm mb-2">{grandTotal ? ((latestData.investments / grandTotal) * 100)?.toFixed(1) : 0}%
-                din total
-              </div>
-              <div className="flex items-center gap-1 text-sm text-purple-300">
-                <Activity size={16}/>
-                <span>Investitii in {investmentData.length} ETFs</span>
-              </div>
-            </div>
-          </div>
-
-        </div>
+        {/* NEW: KPI Cards Component */}
+        <KPICards
+          grandTotal={grandTotal}
+          latestData={latestData}
+          totalAssetsEUR={totalAssetsEUR}
+          changeNetWorth={changeNetWorth}
+          changePercent={changePercent}
+          cashSplitLength={cashSplitData.length}
+          assetsCount={Object.keys(assetsData.length > 0 ? assetsData[0].assets : {}).length}
+          investmentDataLength={investmentData.length}
+        />
 
         {/* Charts Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
@@ -394,7 +339,7 @@ const WealthTracker: React.FC = () => {
             <div className="bg-slate-900/50 backdrop-blur-xl rounded-2xl p-6 shadow-2xl border border-slate-800">
               <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
                 <TrendingUp className="text-blue-400" size={24}/>
-                Valoarea Totală a Averii (EUR)
+                Valoarea Totală
               </h2>
               <ResponsiveContainer width="100%" height={350}>
                 <AreaChart data={mergedData}>
@@ -462,7 +407,7 @@ const WealthTracker: React.FC = () => {
                 <PiggyBank className="text-green-400" size={24}/>
                 Alocarea Activelor (%) în Timp
               </h2>
-              <ResponsiveContainer width="100%" height={300}>
+              <ResponsiveContainer width="100%" height={315}>
                 <BarChart data={assetAllocationData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#334155"/>
                   <XAxis dataKey="date" stroke="#94a3b8" tick={{fontSize: 12}} angle={-45} textAnchor="end"
@@ -522,10 +467,22 @@ const WealthTracker: React.FC = () => {
           </div>
         </div>
 
-        {/* NEW ROW: Profit & Loss + Distribution */}
+        {/* NEW: Advanced Analytics Charts Row */}
+        {/* Updated layout: Left column stacked (Waterfall, Heatmap, Diversification), Right column Projection */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+          <div className="space-y-6">
+            <FinancialGoalsProgress mergedData={mergedData} />
+            <MonthlyPerformanceHeatmap mergedData={mergedData} />
+          </div>
+          <div>
+            <ProjectionChart mergedData={mergedData} />
+          </div>
+        </div>
+
+        {/* Profit & Loss + Distribution */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
           <div
-            className="lg:col-span-2 bg-slate-900/50 backdrop-blur-xl rounded-2xl p-6 shadow-2xl border border-slate-800">
+            className="lg:col-span-3 bg-slate-900/50 backdrop-blur-xl rounded-2xl p-6 shadow-2xl border border-slate-800">
             <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
               <Activity className="text-purple-400" size={24}/>
               Profit & Pierdere Săptămânală
@@ -543,46 +500,6 @@ const WealthTracker: React.FC = () => {
                 </Bar>
               </BarChart>
             </ResponsiveContainer>
-          </div>
-
-          <div
-            className="bg-slate-900/50 backdrop-blur-xl rounded-2xl p-6 shadow-2xl border border-slate-800 flex flex-col items-center justify-center">
-            <h3 className="text-lg font-semibold text-slate-400 mb-2">Distribuție Totală</h3>
-            <ResponsiveContainer width="100%" height={200}>
-              <PieChart>
-                <Pie
-                  data={[
-                    {name: 'Cash', value: latestData?.cash || 0, color: '#22c55e'},
-                    {name: 'Investiții', value: latestData?.investments || 0, color: '#a855f7'},
-                    {name: 'Active', value: totalAssetsEUR || 0, color: '#f59e0b'}
-                  ]}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={60}
-                  outerRadius={80}
-                  paddingAngle={5}
-                  dataKey="value"
-                >
-                  {[
-                    {name: 'Cash', value: latestData?.cash || 0, color: '#22c55e'},
-                    {name: 'Investiții', value: latestData?.investments || 0, color: '#a855f7'},
-                    {name: 'Active', value: totalAssetsEUR || 0, color: '#f59e0b'}
-                  ].map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color}/>
-                  ))}
-                </Pie>
-                <Tooltip content={<CustomTooltip/>}/>
-                <Legend
-                  verticalAlign="bottom"
-                  height={36}
-                  iconType="circle"
-                  formatter={(value) => <span className="text-slate-300 text-md ml-1 mt-2">{value}</span>}
-                />
-              </PieChart>
-            </ResponsiveContainer>
-            <div className="text-center mt-2">
-              <span className="text-2xl font-bold text-white">{formatEUR(grandTotal)}</span>
-            </div>
           </div>
         </div>
 
@@ -621,7 +538,7 @@ const WealthTracker: React.FC = () => {
                       wrapperStyle={{
                         paddingTop: isMobile ? 0 : '10px',
                         color: '#f1f5f9',
-                        fontSize: isMobile ? '11px' : '12px',
+                        fontSize: isMobile ? '11px' : '16px',
                       }}
                       formatter={(value, entry) => {
                         const percentage = (entry.payload?.value / totalCashEUR * 100)?.toFixed(1);
@@ -675,7 +592,7 @@ const WealthTracker: React.FC = () => {
                       wrapperStyle={{
                         paddingTop: isMobile ? 0 : '10px',
                         color: '#f1f5f9',
-                        fontSize: isMobile ? '11px' : '12px',
+                        fontSize: isMobile ? '11px' : '16px',
                       }}
                       formatter={(value, entry) => {
                         const percentage = (entry.payload?.value / totalAssetsEUR * 100)?.toFixed(1);
