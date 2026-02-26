@@ -35,6 +35,15 @@ export const formatEUR = (value: number | undefined): string => {
 };
 
 export const formatRON = (value: number): string => {
+  // if value is bigger than 1 million, format in millions
+  if (Math.abs(value) >= 1_000_000) {
+    return `${formatCurrency(value / 1_000_000)} mil. RON`;
+  }
+
+  if (Math.abs(value) >= 1_000_00) {
+    return `${formatCurrency(value / 1_000)}k RON`;
+  }
+
   return `${formatCurrency(value)} RON`;
 };
 

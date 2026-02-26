@@ -268,7 +268,6 @@ const InvestmentsSection: React.FC<InvestmentsSectionProps> = ({data}) => {
                 ))}
               </Pie>
               <Tooltip content={<CustomTooltipForInvestments/>}/>
-              <Legend/>
             </PieChart>
           </ResponsiveContainer>
         </div>
