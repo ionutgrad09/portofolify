@@ -1,9 +1,10 @@
 import type { Context } from "@netlify/functions";
 
-const defaultUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSbxa5Mqb9oSmOK4uls55ZZC5-pahqPOQMnF1nEJJ2KDYAwAh6PeHM8AUU2xfzl--Vb6pXKX73b4T6C/pub?gid=1348597380&single=true&output=csv";
 
 export default async (req: Request, context: Context) => {
-  const url  = process.env.INVESTMENTS_CSV_URL || defaultUrl;
+  const url  = process.env.INVESTMENTS_CSV_URL;
+
+  if (!url) return;
 
   try {
     const response = await fetch(url);
