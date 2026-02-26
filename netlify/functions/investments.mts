@@ -5,6 +5,7 @@ export default async (req: Request, context: Context) => {
 
   if (!url) return;
 
+
   // CORS preflight
   if (req.method === "OPTIONS") {
     return new Response(null, {
