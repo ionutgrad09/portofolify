@@ -102,7 +102,7 @@ export const processInvestmentsCSVData = (csvText: string): InvestmentData[] => 
   };
 
   const result  = lines.slice(1).map((line, index): InvestmentData | null => {
-    if (index > 4) return null;
+    if (index > 7) return null;
     const cols = parseLine(line);
     if (cols.length < headers.length) return null;
 
