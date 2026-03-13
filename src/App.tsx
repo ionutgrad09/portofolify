@@ -17,7 +17,7 @@ import {
   Cell
 } from 'recharts';
 import {
-  TrendingUp, DollarSign, PiggyBank, Target, Banknote, RefreshCcw,
+  TrendingUp, DollarSign, PiggyBank, Banknote, RefreshCcw,
   Building, Activity
 } from 'lucide-react';
 import HistoryTable from "./components/HistoryTable";
@@ -37,9 +37,17 @@ import EmptyState from "./components/EmptyState";
 import CashSplitTable from "./components/CashSplitTable";
 import KPICards from "./components/KPICards";
 import ProjectionChart from "./components/ProjectionChart";
-import type { WealthData, CashSplitData, InvestmentData, AssetData, MergedData, AssetAllocationData, GrowthData } from "./types";
+import type { WealthData, CashSplitData, InvestmentData, AssetData, MergedData, AssetAllocationData } from "./types";
 import MonthlyPerformanceHeatmap from "./components/MonthlyPerformanceHeatmap";
 import FinancialGoalsProgress from "./components/FinancialGoalsProgress";
+import DrawdownChart from "./components/DrawdownChart";
+import AnnualPerformanceChart from "./components/AnnualPerformanceChart";
+import CumulativeReturnChart from "./components/CumulativeReturnChart";
+import ScenarioProjectionChart from "./components/ScenarioProjectionChart";
+import LiquidityChart from "./components/LiquidityChart";
+import MomentumChart from "./components/MomentumChart";
+import TerDragChart from "./components/TerDragChart";
+import InvestmentGrowthChart from "./components/InvestmentGrowthChart";
 
 const WealthTracker: React.FC = () => {
   const [historyData, setHistoryData] = useState<WealthData[]>(() => getFromStorage<WealthData>(CONFIG.STORAGE_KEYS.DATA));
@@ -261,13 +269,6 @@ const WealthTracker: React.FC = () => {
   const changeNetWorth = latestData.netWorth - previousData.netWorth;
   const changePercent = previousData.netWorth !== 0 ? ((changeNetWorth / previousData.netWorth) * 100)?.toFixed(2) : '0';
 
-  const growthData: GrowthData[] = mergedData.map((entry, idx) => {
-    if (idx === 0) return {...entry, growth: 0};
-    const prevNetWorth = mergedData[idx - 1].netWorth;
-    const growth = prevNetWorth !== 0 ? ((entry.netWorth - prevNetWorth) / prevNetWorth) * 100 : 0;
-    return {...entry, growth};
-  });
-
   // CASH SPLIT CALCULATIONS
   const totalCashEUR = cashSplitData.reduce((sum, item) => sum + item.totalEur, 0);
   const sortedCashSplitPieData = [...cashSplitData]
@@ -359,45 +360,6 @@ const WealthTracker: React.FC = () => {
                 </AreaChart>
               </ResponsiveContainer>
             </div>
-
-
-            {/* GRAFIC 2: Evoluția Activelor (Investiții, Cash, Active) */}
-            <div className="bg-slate-900/50 backdrop-blur-xl rounded-2xl p-6 shadow-2xl border border-slate-800">
-              <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-                <DollarSign className="text-green-400" size={24}/>
-                Evoluția Activelor (Investiții, Cash, Active)
-              </h2>
-              <ResponsiveContainer width="100%" height={350}>
-                <AreaChart data={mergedData}>
-                  <defs>
-                    <linearGradient id="colorInvestments" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#a855f7" stopOpacity={0.8}/>
-                      <stop offset="95%" stopColor="#a855f7" stopOpacity={0.1}/>
-                    </linearGradient>
-                    <linearGradient id="colorCash" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#22c55e" stopOpacity={0.8}/>
-                      <stop offset="95%" stopColor="#22c55e" stopOpacity={0.1}/>
-                    </linearGradient>
-                    <linearGradient id="colorAssets" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.8}/>
-                      <stop offset="95%" stopColor="#f59e0b" stopOpacity={0.1}/>
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#334155"/>
-                  <XAxis dataKey="date" stroke="#94a3b8" tick={{fontSize: 12}} angle={-45} textAnchor="end"
-                         height={80}/>
-                  <YAxis stroke="#94a3b8" tickFormatter={(val: number) => `€${(val / 1000)?.toFixed(0)}k`}/>
-                  <Tooltip content={<CustomTooltip/>}/>
-                  <Area type="monotone" dataKey="assetsTotal" stackId="a" stroke="#f59e0b" fillOpacity={1}
-                        fill="url(#colorAssets)" name="Active Fizice"/>
-                  <Area type="monotone" dataKey="investments" stackId="a" stroke="#a855f7" fillOpacity={1}
-                        fill="url(#colorInvestments)" name="Investiții"/>
-                  <Area type="monotone" dataKey="cash" stackId="a" stroke="#22c55e" fillOpacity={1}
-                        fill="url(#colorCash)" name="Cash"/>
-                  <Legend wrapperStyle={{paddingTop: 10}}/>
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
           </div>
 
           <div className="space-y-6">
@@ -446,29 +408,65 @@ const WealthTracker: React.FC = () => {
               </p>
             </div>
 
-            {/* Rata de Creștere - HEIGHT: 350 */}
-            <div className="bg-slate-900/50 backdrop-blur-xl rounded-2xl p-6 shadow-2xl border border-slate-800">
-              <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-                <Target className="text-pink-400" size={24}/>
-                Rata de Creștere
-              </h2>
-              <ResponsiveContainer width="100%" height={350}>
-                <LineChart data={growthData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#334155"/>
-                  <XAxis dataKey="date" stroke="#94a3b8" tick={{fontSize: 10}} angle={-45} textAnchor="end"
-                         height={60}/>
-                  <YAxis stroke="#94a3b8" tickFormatter={(val: number) => `${val?.toFixed(0)}%`}/>
-                  <Tooltip content={<CustomTooltip percentage/>}/>
-                  <Line type="monotone" dataKey="growth" stroke="#ec4899" strokeWidth={2}
-                        dot={{fill: '#ec4899', r: 3}}/>
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
           </div>
         </div>
 
-        {/* NEW: Advanced Analytics Charts Row */}
-        {/* Updated layout: Left column stacked (Waterfall, Heatmap, Diversification), Right column Projection */}
+        {/* GRAFIC 2: Evoluția Activelor (Investiții, Cash, Active) - Full Width */}
+        <div className="bg-slate-900/50 backdrop-blur-xl rounded-2xl p-6 shadow-2xl border border-slate-800 mb-6">
+          <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+            <DollarSign className="text-green-400" size={24}/>
+            Evoluția Activelor (Investiții, Cash, Active)
+          </h2>
+          <ResponsiveContainer width="100%" height={350}>
+            <AreaChart data={mergedData}>
+              <defs>
+                <linearGradient id="colorInvestments" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#a855f7" stopOpacity={0.8}/>
+                  <stop offset="95%" stopColor="#a855f7" stopOpacity={0.1}/>
+                </linearGradient>
+                <linearGradient id="colorCash" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#22c55e" stopOpacity={0.8}/>
+                  <stop offset="95%" stopColor="#22c55e" stopOpacity={0.1}/>
+                </linearGradient>
+                <linearGradient id="colorAssets" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.8}/>
+                  <stop offset="95%" stopColor="#f59e0b" stopOpacity={0.1}/>
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="#334155"/>
+              <XAxis dataKey="date" stroke="#94a3b8" tick={{fontSize: 12}} angle={-45} textAnchor="end"
+                     height={80}/>
+              <YAxis stroke="#94a3b8" tickFormatter={(val: number) => `€${(val / 1000)?.toFixed(0)}k`}/>
+              <Tooltip content={<CustomTooltip/>}/>
+              <Area type="monotone" dataKey="assetsTotal" stackId="a" stroke="#f59e0b" fillOpacity={1}
+                    fill="url(#colorAssets)" name="Active Fizice"/>
+              <Area type="monotone" dataKey="investments" stackId="a" stroke="#a855f7" fillOpacity={1}
+                    fill="url(#colorInvestments)" name="Investiții"/>
+              <Area type="monotone" dataKey="cash" stackId="a" stroke="#22c55e" fillOpacity={1}
+                    fill="url(#colorCash)" name="Cash"/>
+              <Legend wrapperStyle={{paddingTop: 10}}/>
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* Cumulative Return + Liquidity */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+          <CumulativeReturnChart mergedData={mergedData} />
+          <LiquidityChart mergedData={mergedData} />
+        </div>
+
+        {/* Analytics row: Drawdown + Annual Performance */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+          <DrawdownChart mergedData={mergedData} />
+          <AnnualPerformanceChart mergedData={mergedData} />
+        </div>
+
+        {/* Momentum full width */}
+        <div className="mb-6">
+          <MomentumChart mergedData={mergedData} />
+        </div>
+
+        {/* Goals + Heatmap + Projection */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
           <div className="space-y-6">
             <FinancialGoalsProgress mergedData={mergedData} />
@@ -477,6 +475,11 @@ const WealthTracker: React.FC = () => {
           <div>
             <ProjectionChart mergedData={mergedData} />
           </div>
+        </div>
+
+        {/* Scenario Projection full width */}
+        <div className="mb-6">
+          <ScenarioProjectionChart mergedData={mergedData} />
         </div>
 
         {/* Profit & Loss + Distribution */}
@@ -661,6 +664,14 @@ const WealthTracker: React.FC = () => {
         <hr className="my-8 border-slate-700"/>
 
         <InvestmentsSection data={investmentData}/>
+
+        {investmentData.length > 0 && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+            <TerDragChart investmentData={investmentData} />
+            <InvestmentGrowthChart investmentData={investmentData} />
+          </div>
+        )}
+
         <hr className="my-8 border-slate-700"/>
         <HistoryTable data={historyData}/>
         <SyncModal isOpen={isSyncing} status={syncStatus} onClose={() => setIsSyncing(false)}/>

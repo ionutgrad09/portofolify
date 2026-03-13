@@ -25,205 +25,158 @@ const formatEUR = (value: number): string => {
   }).format(value);
 };
 
+const MONTH_NAMES = ['Ian', 'Feb', 'Mar', 'Apr', 'Mai', 'Iun', 'Iul', 'Aug', 'Sep', 'Oct', 'Noi', 'Dec'];
+
+const parseDDMMYYYY = (dateStr: string): Date => {
+  const [day, month, year] = dateStr.split('.').map(Number);
+  return new Date(year, month - 1, day);
+};
+
+const toDateStr = (date: Date): string =>
+  `${String(date.getDate()).padStart(2, '0')}.${String(date.getMonth() + 1).padStart(2, '0')}.${date.getFullYear()}`;
+
+// Returns week-of-year index (0–51)
+const weekOfYear = (date: Date): number => {
+  const start = new Date(date.getFullYear(), 0, 1);
+  return Math.min(Math.floor((date.getTime() - start.getTime()) / (7 * 24 * 60 * 60 * 1000)), 51);
+};
+
+// From 2026 onward, taxes increased by 12% → net gains are proportionally lower.
+// Weeks where we already have 2026 actuals are used as-is (they already reflect the new rate).
+// Weeks we haven't reached yet fall back to the pre-2026 seasonal pattern scaled down.
+const TAX_CHANGE_YEAR = 2026;
+const TAX_FACTOR = 1 - 0.12; // 12% higher taxes → 12% less net gain
+
+const avg = (arr: number[]) => arr.reduce((a, b) => a + b, 0) / arr.length;
+
 const ProjectionChart: React.FC<{ mergedData: MergedData[] }> = ({ mergedData }) => {
   if (!mergedData || mergedData.length < 2) {
     return null;
   }
 
-  // Helper to parse DD.MM.YYYY
-  const parseDDMMYYYY = (dateStr: string): Date => {
-    const [day, month, year] = dateStr.split('.').map(Number);
-    return new Date(year, month - 1, day);
-  };
-
-  // Ensure data sorted by date
   const sortedData = [...mergedData].sort(
     (a, b) => parseDDMMYYYY(a.date).getTime() - parseDDMMYYYY(b.date).getTime()
   );
 
-  const startWealth = sortedData[0].netWorth;
   const lastEntry = sortedData[sortedData.length - 1];
   const currentWealth = lastEntry.netWorth;
 
-  // Compute months elapsed between first and last entries (date-based)
-  const startDate = parseDDMMYYYY(sortedData[0].date);
-  const endDate = parseDDMMYYYY(lastEntry.date);
-  const monthsElapsed =
-    (endDate.getFullYear() - startDate.getFullYear()) * 12 +
-    (endDate.getMonth() - startDate.getMonth()) +
-    (endDate.getDate() - startDate.getDate()) / 30;
-
-  // Average earnings per month (EUR) based on historical data
-  const totalGrowth = currentWealth - startWealth;
-  const averageMonthlyEarning = monthsElapsed > 0 ? totalGrowth / monthsElapsed : 0;
-
-  // Analyze historical data to estimate tax payments and base monthly growth
-  const TAX_MONTHS = [0, 3, 6, 9]; // Jan, Apr, Jul, Oct (0-based)
-
-  // Calculate complete month deltas by finding first and last entry of each month
-  type MonthData = {
-    month: number;
-    year: number;
-    delta: number;
-    isTaxMonth: boolean;
-    monthName: string;
-    daysInMonth: number;
-    isPartial: boolean;
-  };
-
-  const completeMonths = new Map<string, {
-    start: number;
-    end: number;
-    month: number;
-    year: number;
-    startDate: Date;
-    endDate: Date;
-  }>();
-
-  sortedData.forEach(entry => {
-    const date = parseDDMMYYYY(entry.date);
-    const monthKey = `${date.getFullYear()}-${String(date.getMonth()).padStart(2, '0')}`;
-
-    if (!completeMonths.has(monthKey)) {
-      completeMonths.set(monthKey, {
-        start: entry.netWorth,
-        end: entry.netWorth,
-        month: date.getMonth(),
-        year: date.getFullYear(),
-        startDate: date,
-        endDate: date
-      });
-    } else {
-      completeMonths.get(monthKey)!.end = entry.netWorth;
-      completeMonths.get(monthKey)!.endDate = date;
-    }
-  });
-
-  // Calculate monthly deltas from complete months
-  const monthNames = ['Ian', 'Feb', 'Mar', 'Apr', 'Mai', 'Iun', 'Iul', 'Aug', 'Sep', 'Oct', 'Noi', 'Dec'];
-  const monthlyDeltas: MonthData[] = [];
-
-  completeMonths.forEach((data, key) => {
-    const isTaxMonth = TAX_MONTHS.includes(data.month);
-    const delta = data.end - data.start;
-
-    // Calculate how many days of the month we have data for
-    const daysInMonth = new Date(data.year, data.month + 1, 0).getDate();
-    const daysCovered = data.endDate.getDate() - data.startDate.getDate() + 1;
-    const isPartial = daysCovered < daysInMonth * 0.8; // Consider partial if less than 80% of month
-
-    // For partial months, extrapolate to full month
-    const normalizedDelta = isPartial ? (delta / daysCovered) * daysInMonth : delta;
-
-    monthlyDeltas.push({
-      month: data.month,
-      year: data.year,
-      delta: normalizedDelta,
-      isTaxMonth: isTaxMonth,
-      monthName: `${monthNames[data.month]} ${data.year}`,
-      daysInMonth: daysInMonth,
-      isPartial: isPartial
-    });
-  });
-
-  // Calculate average monthly growth excluding tax months to get baseline
-  const nonTaxDeltas = monthlyDeltas.filter(m => !m.isTaxMonth).map(m => m.delta);
-  const baseMonthlyGrowth = nonTaxDeltas.length > 0
-    ? nonTaxDeltas.reduce((a, b) => a + b, 0) / nonTaxDeltas.length
-    : averageMonthlyEarning;
-
-  // Calculate average tax impact (delta in tax months)
-  const taxDeltas = monthlyDeltas.filter(m => m.isTaxMonth).map(m => m.delta);
-  const avgTaxPayment = taxDeltas.length > 0
-    ? taxDeltas.reduce((a, b) => a + b, 0) / taxDeltas.length
-    : baseMonthlyGrowth * 0.3; // fallback: assume 30% of normal growth in tax months
-
-  // Build seasonal pattern using actual month data or averages
-  // Group deltas by month-of-year (0-11) to create a seasonal pattern
-  const deltasByMonth: number[][] = Array.from({ length: 12 }, () => []);
-  monthlyDeltas.forEach(md => {
-    deltasByMonth[md.month].push(md.delta);
-  });
-
-  // Calculate average for each month, with fallback to category average
-  const seasonalAvg: number[] = deltasByMonth.map((deltas, monthIdx) => {
-    if (deltas.length > 0) {
-      // Use average of this specific month's historical data
-      return deltas.reduce((a, b) => a + b, 0) / deltas.length;
-    } else {
-      // Fallback: use tax month or regular month average
-      return TAX_MONTHS.includes(monthIdx) ? avgTaxPayment : baseMonthlyGrowth;
-    }
-  });
-
-  // Add some variance to make it more realistic (±5-15% random variation)
-  const addVariance = (value: number, idx: number): number => {
-    const variance = 0.05 + (Math.sin(idx * 2.5) * 0.05); // -5% to +10% variation
-    return value * (1 + variance);
-  };
-
-
-  // Build projection for 12 months (48 weeks) using seasonal monthly deltas
-  const projectionData = [...sortedData] as any[];
-  const monthlyProjections: Array<{ month: string; projectedValue: number; totalGrowth: number }> = [];
-
-  let currentTotal = currentWealth;
-
-  // Start from the last entry date
-  const [day, month, year] = lastEntry.date.split('.').map(Number);
-  let projectionDate = new Date(year, month - 1, day);
-
-  for (let m = 0; m < 12; m++) {
-    const monthStart = new Date(projectionDate.getTime());
-    const monthIdx = monthStart.getMonth();
-    const monthDelta = addVariance(seasonalAvg[monthIdx], m);
-    const weeklyDelta = monthDelta / 4;
-
-    for (let w = 0; w < 4; w++) {
-      currentTotal += weeklyDelta;
-      projectionDate = new Date(projectionDate.getTime() + 7 * 24 * 60 * 60 * 1000);
-      const weekDate = `${String(projectionDate.getDate()).padStart(2, '0')}.${String(projectionDate.getMonth() + 1).padStart(2, '0')}.${projectionDate.getFullYear()}`;
-      const projectedValue = currentTotal;
-      projectionData.push({
-        ...lastEntry,
-        date: weekDate,
-        netWorth: projectedValue,
-        upperBound: projectedValue * 1.1,
-        lowerBound: projectedValue * 0.9,
-        isProjection: true
-      } as any);
-    }
-
-    const monthNames = ['Ian', 'Feb', 'Mar', 'Apr', 'Mai', 'Iun', 'Iul', 'Aug', 'Sep', 'Oct', 'Noi', 'Dec'];
-    const monthName = `${monthNames[monthStart.getMonth()]} ${monthStart.getFullYear()}`;
-    monthlyProjections.push({ month: monthName, projectedValue: currentTotal, totalGrowth: monthDelta });
+  // Compute week-over-week deltas, normalized to 7 days, tagged with year
+  const weeklyDeltas: { week: number; delta: number; year: number }[] = [];
+  for (let i = 1; i < sortedData.length; i++) {
+    const prevDate = parseDDMMYYYY(sortedData[i - 1].date);
+    const currDate = parseDDMMYYYY(sortedData[i].date);
+    const days = (currDate.getTime() - prevDate.getTime()) / (24 * 60 * 60 * 1000);
+    if (days <= 0) continue;
+    const normalizedDelta = ((sortedData[i].netWorth - sortedData[i - 1].netWorth) / days) * 7;
+    weeklyDeltas.push({ week: weekOfYear(currDate), delta: normalizedDelta, year: currDate.getFullYear() });
   }
+
+  if (weeklyDeltas.length === 0) return null;
+
+  // Split deltas by tax regime
+  const preTaxDeltas  = weeklyDeltas.filter(d => d.year < TAX_CHANGE_YEAR);
+  const postTaxDeltas = weeklyDeltas.filter(d => d.year >= TAX_CHANGE_YEAR);
+
+  // stdDev from all data (volatility is regime-independent)
+  const allDeltas = weeklyDeltas.map(d => d.delta);
+  const overallAvgWeekly = avg(allDeltas);
+  const variance = allDeltas.reduce((sum, d) => sum + Math.pow(d - overallAvgWeekly, 2), 0) / allDeltas.length;
+  const stdDev = Math.sqrt(variance);
+
+  // Seasonal buckets per regime
+  const preTaxByWeek:  number[][] = Array.from({ length: 52 }, () => []);
+  const postTaxByWeek: number[][] = Array.from({ length: 52 }, () => []);
+  preTaxDeltas.forEach(({ week, delta }) => preTaxByWeek[week].push(delta));
+  postTaxDeltas.forEach(({ week, delta }) => postTaxByWeek[week].push(delta));
+
+  // Overall pre-tax avg — fallback when a week slot has no pre-tax data
+  const overallPreTaxAvg = preTaxDeltas.length > 0 ? avg(preTaxDeltas.map(d => d.delta)) : overallAvgWeekly;
+
+  // Projection seasonal averages (all projection weeks are 2026+):
+  //   • Use 2026 actuals directly when available (already reflect new tax regime)
+  //   • Otherwise scale pre-2026 pattern by TAX_FACTOR
+  const seasonalWeeklyAvg: number[] = postTaxByWeek.map((postSlot, i) => {
+    if (postSlot.length > 0) return avg(postSlot);
+    const preSlot = preTaxByWeek[i];
+    return (preSlot.length > 0 ? avg(preSlot) : overallPreTaxAvg) * TAX_FACTOR;
+  });
+
+  // Projected weekly average (for display)
+  const projectedAvgWeekly = avg(seasonalWeeklyAvg);
+
+  // Build 52-week projection
+  const projectionData = [...sortedData] as any[];
+  let currentTotal = currentWealth;
+  const projDate = parseDDMMYYYY(lastEntry.date);
+
+  const weeklyProjections: Array<{ date: string; netWorth: number; upperBound: number; lowerBound: number }> = [];
+
+  for (let w = 0; w < 52; w++) {
+    projDate.setDate(projDate.getDate() + 7);
+    const delta = seasonalWeeklyAvg[weekOfYear(projDate)];
+    currentTotal += delta;
+    const spread = stdDev * Math.sqrt(w + 1);
+    const dateStr = toDateStr(projDate);
+    weeklyProjections.push({ date: dateStr, netWorth: currentTotal, upperBound: currentTotal + spread, lowerBound: currentTotal - spread });
+    projectionData.push({ ...lastEntry, date: dateStr, netWorth: currentTotal, upperBound: currentTotal + spread, lowerBound: currentTotal - spread, isProjection: true } as any);
+  }
+
+  // Aggregate weekly projections into calendar months
+  const monthlyProjections: Array<{ month: string; projectedValue: number; totalGrowth: number }> = [];
+  const monthMap = new Map<string, { name: string; lastValue: number }>();
+  let prevMonthKey = '';
+  let monthStartWealth = currentWealth;
+
+  weeklyProjections.forEach(wp => {
+    const d = parseDDMMYYYY(wp.date);
+    const mk = `${d.getFullYear()}-${d.getMonth()}`;
+    const name = `${MONTH_NAMES[d.getMonth()]} ${d.getFullYear()}`;
+
+    if (prevMonthKey && mk !== prevMonthKey) {
+      const prev = monthMap.get(prevMonthKey)!;
+      monthlyProjections.push({ month: prev.name, projectedValue: prev.lastValue, totalGrowth: prev.lastValue - monthStartWealth });
+      monthStartWealth = prev.lastValue;
+    }
+
+    monthMap.set(mk, { name, lastValue: wp.netWorth });
+    prevMonthKey = mk;
+  });
+
+  if (prevMonthKey) {
+    const last = monthMap.get(prevMonthKey)!;
+    monthlyProjections.push({ month: last.name, projectedValue: last.lastValue, totalGrowth: last.lastValue - monthStartWealth });
+  }
+
+  const endProjectedValue = currentTotal;
 
   return (
     <div className="bg-slate-900/50 backdrop-blur-xl rounded-2xl p-6 shadow-2xl border border-slate-800">
       <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
         <Target className="text-blue-400" size={24}/>
-        Proiecție 12 Luni (48 Săptămâni)
+        Proiecție 52 Săptămâni
       </h2>
 
-      <div className="bg-slate-800/50 rounded-lg p-3 mb-4">
+      <div className="bg-slate-800/50 rounded-lg p-3 mb-4 space-y-2">
         <div className="grid grid-cols-3 gap-2 text-xs">
           <div>
-            <p className="text-slate-400">Luni Normale</p>
-            <p className="text-emerald-400 font-bold">{formatEUR(baseMonthlyGrowth)}/lună</p>
-            <p className="text-slate-500 text-[10px]">({formatEUR(baseMonthlyGrowth / 4)}/săpt)</p>
+            <p className="text-slate-400">Medie Istorică</p>
+            <p className="text-slate-300 font-bold">{formatEUR(overallAvgWeekly)}/săpt</p>
+            <p className="text-slate-500 text-[10px]">({formatEUR(overallAvgWeekly * 4.33)}/lună)</p>
           </div>
           <div>
-            <p className="text-slate-400">Luni cu Taxe</p>
-            <p className="text-orange-400 font-bold">{formatEUR(avgTaxPayment)}/lună</p>
-            <p className="text-slate-500 text-[10px]">(Ian, Apr, Iul, Oct)</p>
+            <p className="text-slate-400">Proiectat 2026+</p>
+            <p className="text-emerald-400 font-bold">{formatEUR(projectedAvgWeekly)}/săpt</p>
+            <p className="text-slate-500 text-[10px]">({formatEUR(projectedAvgWeekly * 4.33)}/lună)</p>
           </div>
           <div>
-            <p className="text-slate-400">Proiecție la 12 luni</p>
-            <p className="text-blue-400 font-bold">
-              {formatEUR(monthlyProjections[11]?.projectedValue || 0)}
-            </p>
+            <p className="text-slate-400">Proiecție la 52 săpt</p>
+            <p className="text-blue-400 font-bold">{formatEUR(endProjectedValue)}</p>
           </div>
+        </div>
+        <div className="flex items-center gap-1.5 text-[10px] text-amber-400/80 border-t border-slate-700 pt-2">
+          <span>⚠</span>
+          <span>Taxe 2026 aplicate: săptămânile fără date reale sunt reduse cu 12% față de modelul 2025.</span>
         </div>
       </div>
 
@@ -250,8 +203,8 @@ const ProjectionChart: React.FC<{ mergedData: MergedData[] }> = ({ mergedData })
             contentStyle={{backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px', color: "white"}}
             formatter={(value: any, name: string) => {
               if (name === 'netWorth') return [formatEUR(value), 'Valoare'];
-              if (name === 'upperBound') return [formatEUR(value), 'Maxim (+10%)'];
-              if (name === 'lowerBound') return [formatEUR(value), 'Minim (-10%)'];
+              if (name === 'upperBound') return [formatEUR(value), 'Estimat Max'];
+              if (name === 'lowerBound') return [formatEUR(value), 'Estimat Min'];
               return [formatEUR(value), name];
             }}
           />

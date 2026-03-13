@@ -9,24 +9,49 @@ interface MonthlyPerformanceHeatmapProps {
   mergedData: MergedData[];
 }
 
+const parseDDMMYYYY = (dateStr: string): Date => {
+  const [day, month, year] = dateStr.split('.').map(Number);
+  return new Date(year, month - 1, day);
+};
+
 const MonthlyPerformanceHeatmap: React.FC<MonthlyPerformanceHeatmapProps> = ({ mergedData }) => {
-  // Parse dates and calculate monthly returns
+  // Sort data chronologically
+  const sorted = [...mergedData].sort(
+    (a, b) => parseDDMMYYYY(a.date).getTime() - parseDDMMYYYY(b.date).getTime()
+  );
+
+  // For each calendar month, record the last net worth snapshot
+  const lastOfMonth = new Map<string, number>(); // key: "YYYY-M"
+  sorted.forEach(entry => {
+    const [, month, year] = entry.date.split('.').map(Number);
+    lastOfMonth.set(`${year}-${month}`, entry.netWorth);
+  });
+
+  // Sort month keys chronologically
+  const monthKeys = Array.from(lastOfMonth.keys()).sort((a, b) => {
+    const [ya, ma] = a.split('-').map(Number);
+    const [yb, mb] = b.split('-').map(Number);
+    return ya !== yb ? ya - yb : ma - mb;
+  });
+
+  // Compute month-over-month return: (last of month − last of prev month) / last of prev month
+  // This captures ALL movement within the calendar month, including the gap from the previous month's last snapshot.
   const monthlyReturns: { [key: string]: { [key: string]: number } } = {};
   const monthlyDeltasEUR: { [key: string]: { [key: string]: number } } = {};
 
-  mergedData.forEach((entry, idx) => {
-    if (idx === 0) return;
+  monthKeys.forEach((key, idx) => {
+    const [year, month] = key.split('-').map(Number);
+    const endValue = lastOfMonth.get(key)!;
+    const startValue = idx === 0 ? endValue : lastOfMonth.get(monthKeys[idx - 1])!;
 
-    const [day, month, year] = entry.date.split('.').map(Number);
-    const prevNetWorth = mergedData[idx - 1].netWorth;
-    const deltaEUR = entry.netWorth - prevNetWorth;
-    const returnPct = prevNetWorth > 0 ? (deltaEUR / prevNetWorth) * 100 : 0;
+    const deltaEUR = endValue - startValue;
+    const returnPct = startValue > 0 && idx > 0 ? (deltaEUR / startValue) * 100 : 0;
 
     if (!monthlyReturns[year]) monthlyReturns[year] = {};
     if (!monthlyDeltasEUR[year]) monthlyDeltasEUR[year] = {};
 
-    monthlyReturns[year][month] = (monthlyReturns[year][month] || 0) + returnPct;
-    monthlyDeltasEUR[year][month] = (monthlyDeltasEUR[year][month] || 0) + deltaEUR;
+    monthlyReturns[year][month] = returnPct;
+    monthlyDeltasEUR[year][month] = deltaEUR;
   });
 
   const years = Object.keys(monthlyReturns).sort();
