@@ -45,9 +45,10 @@ import AnnualPerformanceChart from "./components/AnnualPerformanceChart";
 import CumulativeReturnChart from "./components/CumulativeReturnChart";
 import ScenarioProjectionChart from "./components/ScenarioProjectionChart";
 import LiquidityChart from "./components/LiquidityChart";
-import MomentumChart from "./components/MomentumChart";
 import TerDragChart from "./components/TerDragChart";
 import InvestmentGrowthChart from "./components/InvestmentGrowthChart";
+import PortfolioDriftChart from "./components/PortfolioDriftChart";
+import InvestmentForecastChart from "./components/InvestmentForecastChart";
 
 const WealthTracker: React.FC = () => {
   const [historyData, setHistoryData] = useState<WealthData[]>(() => getFromStorage<WealthData>(CONFIG.STORAGE_KEYS.DATA));
@@ -67,6 +68,7 @@ const WealthTracker: React.FC = () => {
   const [loggedIn, setLoggedIn] = useState<boolean>(false);
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
   const [syncStatus, setSyncStatus] = useState<string>("Așteptare...");
+  const [activeTab, setActiveTab] = useState<string>("sumar");
 
   useEffect(() => {
     const session = JSON.parse(localStorage.getItem(CONFIG.SESSION_KEY) as string);
@@ -297,30 +299,38 @@ const WealthTracker: React.FC = () => {
 
   const assetKeys = Object.keys(latestAssetsEntry.assets || {});
 
+  const tabs = [
+    { id: 'sumar',       label: 'Sumar' },
+    { id: 'analiza',     label: 'Analiză' },
+    { id: 'proiectii',   label: 'Proiecții' },
+    { id: 'investitii',  label: 'Investiții' },
+    ...(cashSplitData.length > 0  ? [{ id: 'cash',    label: 'Cash' }]   : []),
+    ...(assetsData.length > 0     ? [{ id: 'active',  label: 'Active' }] : []),
+    { id: 'istoric',     label: 'Istoric' },
+  ];
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 p-4 md:p-6">
+    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 p-3 sm:p-6">
       <div className="max-w-[1800px] mx-auto">
+
         {/* Header */}
-        <div className="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div className="w-full sm:w-auto">
-            <h1
-              className="text-3xl sm:text-4xl md:text-5xl font-bold bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent mb-2">
+        <div className="mb-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+          <div>
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent mb-1">
               Portofolify
             </h1>
-            <p className="text-slate-400 text-sm sm:text-base">Analiză completă a portofoliului tău</p>
+            <p className="text-slate-400 text-sm">Analiză completă a portofoliului tău</p>
           </div>
-          <div className="w-full sm:w-auto flex justify-start sm:justify-end">
-            <button
-              onClick={fetchAndProcessAllCSV}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl font-semibold flex items-center gap-2 shadow-lg transform hover:scale-105 transition-all w-full sm:w-auto justify-center"
-            >
-              <RefreshCcw size={20}/>
-              <span>Actualizează Datele</span>
-            </button>
-          </div>
+          <button
+            onClick={fetchAndProcessAllCSV}
+            className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl font-semibold flex items-center gap-2 shadow-lg transition-all w-full sm:w-auto justify-center"
+          >
+            <RefreshCcw size={18}/>
+            <span>Actualizează</span>
+          </button>
         </div>
 
-        {/* NEW: KPI Cards Component */}
+        {/* KPI Cards — always visible */}
         <KPICards
           grandTotal={grandTotal}
           latestData={latestData}
@@ -332,199 +342,212 @@ const WealthTracker: React.FC = () => {
           investmentDataLength={investmentData.length}
         />
 
-        {/* Charts Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-          <div className="lg:col-span-2 space-y-6">
+        {/* Tab bar — horizontally scrollable on mobile */}
+        <div className="overflow-x-auto -mx-3 px-3 sm:mx-0 sm:px-0 mb-6 mt-4">
+          <div className="flex gap-1 min-w-max sm:min-w-0 bg-slate-800/60 p-1 rounded-xl border border-slate-700">
+            {tabs.map(tab => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`px-3 sm:px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${
+                  activeTab === tab.id
+                    ? 'bg-blue-600 text-white shadow'
+                    : 'text-slate-400 hover:text-white hover:bg-slate-700/60'
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+        </div>
 
-            {/* GRAFIC 1: Valoarea Totală a Averii (EUR) */}
+        {/* ── SUMAR ────────────────────────────────────────────── */}
+        {activeTab === 'sumar' && (
+          <div className="space-y-6">
+            {/* Net worth chart + allocation stacked bar */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="lg:col-span-2 bg-slate-900/50 backdrop-blur-xl rounded-2xl p-6 shadow-2xl border border-slate-800">
+                <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+                  <TrendingUp className="text-blue-400" size={24}/>
+                  Valoarea Totală
+                </h2>
+                <ResponsiveContainer width="100%" height={300}>
+                  <AreaChart data={mergedData}>
+                    <defs>
+                      <linearGradient id="colorNetWorth" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8}/>
+                        <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.1}/>
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#334155"/>
+                    <XAxis dataKey="date" stroke="#94a3b8" tick={{fontSize: 10}} angle={-45} textAnchor="end" height={60}/>
+                    <YAxis stroke="#94a3b8" tickFormatter={(val: number) => `€${(val/1000).toFixed(0)}k`}/>
+                    <Tooltip content={<CustomTooltip/>}/>
+                    <Area type="monotone" dataKey="netWorth" stroke="#3b82f6" strokeWidth={3} fillOpacity={1} fill="url(#colorNetWorth)" name="Avere Netă"/>
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+
+              <div className="bg-slate-900/50 backdrop-blur-xl rounded-2xl p-6 shadow-2xl border border-slate-800">
+                <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+                  <PiggyBank className="text-green-400" size={24}/>
+                  Alocare Actuale (%)
+                </h2>
+                <ResponsiveContainer width="100%" height={260}>
+                  <BarChart data={assetAllocationData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#334155"/>
+                    <XAxis dataKey="date" stroke="#94a3b8" tick={{fontSize: 9}} angle={-45} textAnchor="end" height={50}/>
+                    <YAxis stroke="#94a3b8" tickFormatter={(val: number) => `${val}%`} domain={[0, 100]}/>
+                    <Tooltip
+                      content={({active, payload, label}) => {
+                        if (active && payload && payload.length) {
+                          return (
+                            <div className="bg-slate-800 border border-slate-700 p-3 rounded-xl shadow-xl text-sm">
+                              <p className="text-slate-300 font-medium mb-1">{label}</p>
+                              {payload.map((pld, index) => (
+                                <div key={index} className="flex items-center gap-2" style={{color: pld.color || 'white'}}>
+                                  <span>{pld.name}:</span>
+                                  <span className="font-bold">{pld.value as number}%</span>
+                                </div>
+                              ))}
+                              <p className="text-xs text-slate-400 mt-2">Total: {formatEUR((payload[0].payload as AssetAllocationData).total)}</p>
+                            </div>
+                          );
+                        }
+                        return null;
+                      }}
+                    />
+                    <Legend wrapperStyle={{paddingTop: 8, fontSize: 11}}/>
+                    <Bar dataKey="investments" stackId="a" fill="#a855f7" name="Investiții %"/>
+                    <Bar dataKey="assets" stackId="a" fill="#f59e0b" name="Active %"/>
+                    <Bar dataKey="cash" stackId="a" fill="#22c55e" name="Cash %"/>
+                  </BarChart>
+                </ResponsiveContainer>
+                <p className="text-slate-400 text-xs mt-2 text-center">
+                  Investiții <b className="text-purple-400">{assetAllocationData[assetAllocationData.length - 1]?.investments ?? 0}%</b>
+                  {' / '}Cash <b className="text-green-400">{assetAllocationData[assetAllocationData.length - 1]?.cash ?? 0}%</b>
+                  {' / '}Active <b className="text-amber-400">{assetAllocationData[assetAllocationData.length - 1]?.assets ?? 0}%</b>
+                </p>
+              </div>
+            </div>
+
+            {/* Stacked evolution */}
             <div className="bg-slate-900/50 backdrop-blur-xl rounded-2xl p-6 shadow-2xl border border-slate-800">
               <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-                <TrendingUp className="text-blue-400" size={24}/>
-                Valoarea Totală
+                <DollarSign className="text-green-400" size={24}/>
+                Evoluția Activelor (Investiții, Cash, Active)
               </h2>
-              <ResponsiveContainer width="100%" height={350}>
+              <ResponsiveContainer width="100%" height={280}>
                 <AreaChart data={mergedData}>
                   <defs>
-                    <linearGradient id="colorNetWorth" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8}/>
-                      <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.1}/>
+                    <linearGradient id="colorInvestments" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#a855f7" stopOpacity={0.8}/>
+                      <stop offset="95%" stopColor="#a855f7" stopOpacity={0.1}/>
+                    </linearGradient>
+                    <linearGradient id="colorCash" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#22c55e" stopOpacity={0.8}/>
+                      <stop offset="95%" stopColor="#22c55e" stopOpacity={0.1}/>
+                    </linearGradient>
+                    <linearGradient id="colorAssets2" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.8}/>
+                      <stop offset="95%" stopColor="#f59e0b" stopOpacity={0.1}/>
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="#334155"/>
-                  <XAxis dataKey="date" stroke="#94a3b8" tick={{fontSize: 12}} angle={-45} textAnchor="end"
-                         height={80}/>
-                  <YAxis stroke="#94a3b8" tickFormatter={(val: number) => `€${(val / 1000)?.toFixed(0)}k`}/>
+                  <XAxis dataKey="date" stroke="#94a3b8" tick={{fontSize: 10}} angle={-45} textAnchor="end" height={60}/>
+                  <YAxis stroke="#94a3b8" tickFormatter={(val: number) => `€${(val/1000).toFixed(0)}k`}/>
                   <Tooltip content={<CustomTooltip/>}/>
-                  <Area type="monotone" dataKey="netWorth" stroke="#3b82f6" strokeWidth={3} fillOpacity={1}
-                        fill="url(#colorNetWorth)" name="Avere Netă"/>
+                  <Area type="monotone" dataKey="assetsTotal" stackId="a" stroke="#f59e0b" fillOpacity={1} fill="url(#colorAssets2)" name="Active Fizice"/>
+                  <Area type="monotone" dataKey="investments" stackId="a" stroke="#a855f7" fillOpacity={1} fill="url(#colorInvestments)" name="Investiții"/>
+                  <Area type="monotone" dataKey="cash" stackId="a" stroke="#22c55e" fillOpacity={1} fill="url(#colorCash)" name="Cash"/>
+                  <Legend wrapperStyle={{paddingTop: 8}}/>
                 </AreaChart>
               </ResponsiveContainer>
             </div>
-          </div>
 
+            {/* Cumulative return + Liquidity */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <CumulativeReturnChart mergedData={mergedData}/>
+              <LiquidityChart mergedData={mergedData}/>
+            </div>
+          </div>
+        )}
+
+        {/* ── ANALIZĂ ──────────────────────────────────────────── */}
+        {activeTab === 'analiza' && (
           <div className="space-y-6">
-            {/* GRAFIC 2: Alocarea Activelor (%) în Timp (Stacked Bar Chart) */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <DrawdownChart mergedData={mergedData}/>
+              <AnnualPerformanceChart mergedData={mergedData}/>
+            </div>
+            <MonthlyPerformanceHeatmap mergedData={mergedData}/>
             <div className="bg-slate-900/50 backdrop-blur-xl rounded-2xl p-6 shadow-2xl border border-slate-800">
               <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-                <PiggyBank className="text-green-400" size={24}/>
-                Alocarea Activelor (%) în Timp
+                <Activity className="text-purple-400" size={24}/>
+                Profit & Pierdere Săptămânală
               </h2>
-              <ResponsiveContainer width="100%" height={315}>
-                <BarChart data={assetAllocationData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#334155"/>
-                  <XAxis dataKey="date" stroke="#94a3b8" tick={{fontSize: 12}} angle={-45} textAnchor="end"
-                         height={60}/>
-                  <YAxis stroke="#94a3b8" tickFormatter={(val: number) => `${val}%`} domain={[0, 100]}/>
-                  <Tooltip
-                    content={({active, payload, label}) => {
-                      if (active && payload && payload.length) {
-                        return (
-                          <div className="bg-slate-800 border border-slate-700 p-3 rounded-xl shadow-xl text-sm">
-                            <p className="text-slate-300 font-medium mb-1">{label}</p>
-                            {payload.map((pld, index) => (
-                              <div key={index} className="flex items-center gap-2"
-                                   style={{color: pld.color || "white"}}>
-                                <span>{pld.name}:</span>
-                                <span className="font-bold">{pld.value as number}%</span>
-                              </div>
-                            ))}
-                            <p className="text-xs text-slate-400 mt-2">Total
-                              EUR: {formatEUR((payload[0].payload as AssetAllocationData).total)}</p>
-                          </div>
-                        );
-                      }
-                      return null;
-                    }}
-                  />
-                  <Legend wrapperStyle={{paddingTop: 10}}/>
-                  <Bar dataKey="investments" stackId="a" fill="#a855f7" name="Investiții %"/>
-                  <Bar dataKey="assets" stackId="a" fill="#f59e0b" name="Active %"/>
-                  <Bar dataKey="cash" stackId="a" fill="#22c55e" name="Cash %"/>
+              <ResponsiveContainer width="100%" height={260}>
+                <BarChart data={historyData}>
+                  <CartesianGrid stroke="#334155" strokeDasharray="3 3"/>
+                  <XAxis dataKey="date" stroke="#94a3b8" tick={{fontSize: 9}} angle={-45} textAnchor="end" height={50}/>
+                  <YAxis stroke="#94a3b8" tick={{fill: '#94a3b8'}}/>
+                  <Tooltip content={<CustomTooltip ron/>} cursor={{fill: 'rgba(255,255,255,0.1)'}}/>
+                  <Bar dataKey="gainLoss" name="Profit">
+                    {historyData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.gainLoss >= 0 ? '#22c55e' : '#ef4444'}/>
+                    ))}
+                  </Bar>
                 </BarChart>
               </ResponsiveContainer>
-              <p className="text-slate-400 text-sm mt-4 text-center">
-                Alocarea
-                curentă: <b>Investiții {assetAllocationData.length > 0 ? assetAllocationData[assetAllocationData.length - 1].investments : 0}%</b> / <b>Cash {assetAllocationData.length > 0 ? assetAllocationData[assetAllocationData.length - 1].cash : 0}%</b> / <b>Active {assetAllocationData.length > 0 ? assetAllocationData[assetAllocationData.length - 1].assets : 0}%</b>
-              </p>
             </div>
-
           </div>
-        </div>
+        )}
 
-        {/* GRAFIC 2: Evoluția Activelor (Investiții, Cash, Active) - Full Width */}
-        <div className="bg-slate-900/50 backdrop-blur-xl rounded-2xl p-6 shadow-2xl border border-slate-800 mb-6">
-          <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-            <DollarSign className="text-green-400" size={24}/>
-            Evoluția Activelor (Investiții, Cash, Active)
-          </h2>
-          <ResponsiveContainer width="100%" height={350}>
-            <AreaChart data={mergedData}>
-              <defs>
-                <linearGradient id="colorInvestments" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#a855f7" stopOpacity={0.8}/>
-                  <stop offset="95%" stopColor="#a855f7" stopOpacity={0.1}/>
-                </linearGradient>
-                <linearGradient id="colorCash" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#22c55e" stopOpacity={0.8}/>
-                  <stop offset="95%" stopColor="#22c55e" stopOpacity={0.1}/>
-                </linearGradient>
-                <linearGradient id="colorAssets" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.8}/>
-                  <stop offset="95%" stopColor="#f59e0b" stopOpacity={0.1}/>
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#334155"/>
-              <XAxis dataKey="date" stroke="#94a3b8" tick={{fontSize: 12}} angle={-45} textAnchor="end"
-                     height={80}/>
-              <YAxis stroke="#94a3b8" tickFormatter={(val: number) => `€${(val / 1000)?.toFixed(0)}k`}/>
-              <Tooltip content={<CustomTooltip/>}/>
-              <Area type="monotone" dataKey="assetsTotal" stackId="a" stroke="#f59e0b" fillOpacity={1}
-                    fill="url(#colorAssets)" name="Active Fizice"/>
-              <Area type="monotone" dataKey="investments" stackId="a" stroke="#a855f7" fillOpacity={1}
-                    fill="url(#colorInvestments)" name="Investiții"/>
-              <Area type="monotone" dataKey="cash" stackId="a" stroke="#22c55e" fillOpacity={1}
-                    fill="url(#colorCash)" name="Cash"/>
-              <Legend wrapperStyle={{paddingTop: 10}}/>
-            </AreaChart>
-          </ResponsiveContainer>
-        </div>
-
-        {/* Cumulative Return + Liquidity */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-          <CumulativeReturnChart mergedData={mergedData} />
-          <LiquidityChart mergedData={mergedData} />
-        </div>
-
-        {/* Analytics row: Drawdown + Annual Performance */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-          <DrawdownChart mergedData={mergedData} />
-          <AnnualPerformanceChart mergedData={mergedData} />
-        </div>
-
-        {/* Momentum full width */}
-        <div className="mb-6">
-          <MomentumChart mergedData={mergedData} />
-        </div>
-
-        {/* Goals + Heatmap + Projection */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        {/* ── PROIECȚII ────────────────────────────────────────── */}
+        {activeTab === 'proiectii' && (
           <div className="space-y-6">
-            <FinancialGoalsProgress mergedData={mergedData} />
-            <MonthlyPerformanceHeatmap mergedData={mergedData} />
-          </div>
-          <div>
-            <ProjectionChart mergedData={mergedData} />
-          </div>
-        </div>
-
-        {/* Scenario Projection full width */}
-        <div className="mb-6">
-          <ScenarioProjectionChart mergedData={mergedData} />
-        </div>
-
-        {/* Profit & Loss + Distribution */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-          <div
-            className="lg:col-span-3 bg-slate-900/50 backdrop-blur-xl rounded-2xl p-6 shadow-2xl border border-slate-800">
-            <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-              <Activity className="text-purple-400" size={24}/>
-              Profit & Pierdere Săptămânală
-            </h2>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={historyData}>
-                <CartesianGrid stroke="#334155" strokeDasharray="3 3"/>
-                <XAxis dataKey="date" stroke="#f1f5f9"/>
-                <YAxis stroke="#f1f5f9"/>
-                <Tooltip content={<CustomTooltip ron/>} cursor={{fill: 'rgba(255,255,255,0.1)'}}/>
-                <Bar dataKey="gainLoss" name="Profit">
-                  {historyData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.gainLoss >= 0 ? '#22c55e' : '#ef4444'}/>
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        {/* CASH SPLIT SECTION */}
-        {cashSplitData.length > 0 && (
-          <div className="mt-6 bg-slate-900/50 p-4 sm:p-6 rounded-3xl border border-slate-800">
-
-            <h1 className="text-3xl font-bold text-white mb-4 flex items-center gap-2">
-              <Banknote className="text-purple-400" size={30}/>
-              Cash (Total: {formatEUR(totalCashEUR)})
-            </h1>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <div className="bg-slate-800/50 backdrop-blur-xl rounded-2xl p-6 shadow-2xl border border-slate-800">
-                <h2 className="text-xl font-bold text-white mb-4">Distribuția Lichidităților (EUR Echivalent)</h2>
-                <ResponsiveContainer width="100%" height={450}>
+              <FinancialGoalsProgress mergedData={mergedData}/>
+              <ProjectionChart mergedData={mergedData}/>
+            </div>
+            <ScenarioProjectionChart mergedData={mergedData}/>
+          </div>
+        )}
+
+        {/* ── INVESTIȚII ───────────────────────────────────────── */}
+        {activeTab === 'investitii' && (
+          <div className="space-y-6">
+            <InvestmentsSection data={investmentData}/>
+            {investmentData.length > 0 && (
+              <>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <InvestmentGrowthChart investmentData={investmentData}/>
+                  <TerDragChart investmentData={investmentData}/>
+                </div>
+                <PortfolioDriftChart investmentData={investmentData}/>
+                <InvestmentForecastChart investmentData={investmentData}/>
+              </>
+            )}
+          </div>
+        )}
+
+        {/* ── CASH ─────────────────────────────────────────────── */}
+        {activeTab === 'cash' && cashSplitData.length > 0 && (
+          <div className="space-y-6">
+            <div className="flex items-center gap-2 mb-2">
+              <Banknote className="text-purple-400" size={28}/>
+              <h2 className="text-2xl font-bold text-white">Cash — Total: {formatEUR(totalCashEUR)}</h2>
+            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="bg-slate-900/50 backdrop-blur-xl rounded-2xl p-6 shadow-2xl border border-slate-800">
+                <h3 className="text-lg font-bold text-white mb-4">Distribuția Lichidităților</h3>
+                <ResponsiveContainer width="100%" height={380}>
                   <PieChart>
                     <Pie
                       data={sortedCashSplitPieData}
                       cx="50%"
-                      cy={isMobile ? "40%" : "45%"}
+                      cy={isMobile ? "38%" : "43%"}
                       outerRadius={isMobile ? 90 : 120}
-                      fill="#8884d8"
                       dataKey="value"
                       label={false}
                       labelLine={false}
@@ -538,142 +561,103 @@ const WealthTracker: React.FC = () => {
                       layout={isMobile ? "horizontal" : "vertical"}
                       verticalAlign={isMobile ? "bottom" : "middle"}
                       align={isMobile ? "center" : "right"}
-                      wrapperStyle={{
-                        paddingTop: isMobile ? 0 : '10px',
-                        color: '#f1f5f9',
-                        fontSize: isMobile ? '11px' : '16px',
-                      }}
+                      wrapperStyle={{ paddingTop: isMobile ? 0 : '10px', color: '#f1f5f9', fontSize: isMobile ? '11px' : '14px' }}
                       formatter={(value, entry) => {
-                        const percentage = (entry.payload?.value / totalCashEUR * 100)?.toFixed(1);
-                        return (
-                          <span style={{color: (entry as any).color, fontWeight: 'bold'}}>
-              {value}: {formatEUR(entry.payload?.value)} ({percentage}%)
-            </span>
-                        );
+                        const pct = (entry.payload?.value / totalCashEUR * 100)?.toFixed(1);
+                        return <span style={{color: (entry as any).color, fontWeight: 'bold'}}>{value}: {formatEUR(entry.payload?.value)} ({pct}%)</span>;
                       }}
                     />
                   </PieChart>
                 </ResponsiveContainer>
               </div>
-
               <CashSplitTable data={cashSplitData} totalCashEUR={totalCashEUR}/>
             </div>
           </div>
         )}
 
-        {/* ASSETS SECTION */}
-        {assetsData.length > 0 && (
-          <div className="mt-6 bg-slate-900/50 p-4 sm:p-6 rounded-3xl border border-slate-800">
-            <h1 className="text-3xl font-bold text-white mb-4 flex items-center gap-2">
-              <Building className="text-orange-400" size={30}/>
-              Active Personale (Total: {formatEUR(totalAssetsEUR)})
-            </h1>
+        {/* ── ACTIVE ───────────────────────────────────────────── */}
+        {activeTab === 'active' && assetsData.length > 0 && (
+          <div className="space-y-6">
+            <div className="flex items-center gap-2 mb-2">
+              <Building className="text-orange-400" size={28}/>
+              <h2 className="text-2xl font-bold text-white">Active Personale — Total: {formatEUR(totalAssetsEUR)}</h2>
+            </div>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <div className="bg-slate-800/50 backdrop-blur-xl rounded-2xl p-6 shadow-2xl border border-slate-800">
-                <h2 className="text-xl font-bold text-white mb-4">Distribuția Activelor</h2>
-                <ResponsiveContainer width="100%" height={300}>
+              <div className="bg-slate-900/50 backdrop-blur-xl rounded-2xl p-6 shadow-2xl border border-slate-800">
+                <h3 className="text-lg font-bold text-white mb-4">Distribuția Activelor</h3>
+                <ResponsiveContainer width="100%" height={280}>
                   <PieChart>
-                    <Pie
-                      data={sortedAssetsPieData}
-                      cx="50%"
-                      cy="50%"
-                      outerRadius={120}
-                      fill="#8884d8"
-                      dataKey="value"
-                      label={false}
-                    >
+                    <Pie data={sortedAssetsPieData} cx="50%" cy="50%" outerRadius={isMobile ? 90 : 110} dataKey="value" label={false}>
                       {sortedAssetsPieData.map((entry, index) => (
                         <Cell key={`cell-${index}`} fill={entry.color}/>
                       ))}
                     </Pie>
                     <Tooltip content={<CustomTooltip/>}/>
-
                     <Legend
                       layout={isMobile ? "horizontal" : "vertical"}
                       verticalAlign={isMobile ? "bottom" : "middle"}
                       align={isMobile ? "center" : "right"}
-                      wrapperStyle={{
-                        paddingTop: isMobile ? 0 : '10px',
-                        color: '#f1f5f9',
-                        fontSize: isMobile ? '11px' : '16px',
-                      }}
+                      wrapperStyle={{ paddingTop: isMobile ? 0 : '10px', color: '#f1f5f9', fontSize: isMobile ? '11px' : '14px' }}
                       formatter={(value, entry) => {
-                        const percentage = (entry.payload?.value / totalAssetsEUR * 100)?.toFixed(1);
-                        return `${value} (${percentage}%)`;
+                        const pct = (entry.payload?.value / totalAssetsEUR * 100)?.toFixed(1);
+                        return `${value} (${pct}%)`;
                       }}
                     />
                   </PieChart>
                 </ResponsiveContainer>
               </div>
 
-              <div className="bg-slate-800/50 backdrop-blur-xl rounded-2xl p-6 shadow-2xl border border-slate-800">
-                <h2 className="text-xl font-bold text-white mb-4">Evoluție Active Individuale</h2>
-                <ResponsiveContainer width="100%" height={300}>
+              <div className="bg-slate-900/50 backdrop-blur-xl rounded-2xl p-6 shadow-2xl border border-slate-800">
+                <h3 className="text-lg font-bold text-white mb-4">Evoluție Active Individuale</h3>
+                <ResponsiveContainer width="100%" height={280}>
                   <LineChart data={assetsEvolutionData}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#334155"/>
-                    <XAxis dataKey="date" stroke="#94a3b8" tick={{fontSize: 12}} angle={-45} textAnchor="end"
-                           height={60}/>
-                    <YAxis stroke="#94a3b8" tickFormatter={(val: number) => `€${(val / 1000)?.toFixed(0)}k`}/>
+                    <XAxis dataKey="date" stroke="#94a3b8" tick={{fontSize: 10}} angle={-45} textAnchor="end" height={50}/>
+                    <YAxis stroke="#94a3b8" tickFormatter={(val: number) => `€${(val/1000).toFixed(0)}k`}/>
                     <Tooltip content={<CustomTooltip/>}/>
-                    <Legend wrapperStyle={{paddingTop: 10}}/>
+                    <Legend wrapperStyle={{paddingTop: 8}}/>
                     {assetKeys.map((key, index) => (
-                      <Line
-                        key={key}
-                        type="monotone"
-                        dataKey={key}
-                        stroke={['#F59E0B', '#EF4444', '#3B82F6', '#10B981', '#8B5CF6', '#EC4899'][index % 6]}
-                        strokeWidth={2}
-                        dot={false}
-                      />
+                      <Line key={key} type="monotone" dataKey={key}
+                        stroke={['#F59E0B','#EF4444','#3B82F6','#10B981','#8B5CF6','#EC4899'][index % 6]}
+                        strokeWidth={2} dot={false}/>
                     ))}
                   </LineChart>
                 </ResponsiveContainer>
               </div>
+            </div>
 
-              <div
-                className="bg-slate-800/50 backdrop-blur-xl rounded-2xl p-6 shadow-2xl border border-slate-800 overflow-hidden lg:col-span-2">
-                <h2 className="text-xl font-bold text-white mb-4">Listă Active</h2>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm text-left text-slate-300">
-                    <thead className="text-xs text-slate-400 uppercase bg-slate-700/50">
-                    <tr>
-                      <th className="px-4 py-3 rounded-l-lg">Activ</th>
-                      <th className="px-4 py-3 text-right rounded-r-lg">Valoare (EUR)</th>
+            <div className="bg-slate-900/50 backdrop-blur-xl rounded-2xl p-6 shadow-2xl border border-slate-800 overflow-x-auto">
+              <h3 className="text-lg font-bold text-white mb-4">Listă Active</h3>
+              <table className="w-full text-sm text-left text-slate-300">
+                <thead className="text-xs text-slate-400 uppercase bg-slate-700/50">
+                  <tr>
+                    <th className="px-4 py-3 rounded-l-lg">Activ</th>
+                    <th className="px-4 py-3 text-right rounded-r-lg">Valoare (EUR)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {sortedAssetsPieData.map((item, index) => (
+                    <tr key={index} className="border-b border-slate-700/50 hover:bg-slate-700/30 transition-colors">
+                      <td className="px-4 py-3 font-medium text-white flex items-center gap-2">
+                        <div className="w-3 h-3 rounded-full" style={{backgroundColor: item.color}}></div>
+                        {item.name}
+                      </td>
+                      <td className="px-4 py-3 text-right font-bold text-emerald-400">{formatEUR(item.value)}</td>
                     </tr>
-                    </thead>
-                    <tbody>
-                    {sortedAssetsPieData.map((item, index) => (
-                      <tr key={index} className="border-b border-slate-700/50 hover:bg-slate-700/30 transition-colors">
-                        <td className="px-4 py-3 font-medium text-white flex items-center gap-2">
-                          <div className="w-3 h-3 rounded-full" style={{backgroundColor: item.color}}></div>
-                          {item.name}
-                        </td>
-                        <td className="px-4 py-3 text-right font-bold text-emerald-400">
-                          {formatEUR(item.value)}
-                        </td>
-                      </tr>
-                    ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
         )}
 
-        <hr className="my-8 border-slate-700"/>
-
-        <InvestmentsSection data={investmentData}/>
-
-        {investmentData.length > 0 && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
-            <TerDragChart investmentData={investmentData} />
-            <InvestmentGrowthChart investmentData={investmentData} />
+        {/* ── ISTORIC ──────────────────────────────────────────── */}
+        {activeTab === 'istoric' && (
+          <div className="space-y-6">
+            <HistoryTable data={historyData}/>
           </div>
         )}
 
-        <hr className="my-8 border-slate-700"/>
-        <HistoryTable data={historyData}/>
         <SyncModal isOpen={isSyncing} status={syncStatus} onClose={() => setIsSyncing(false)}/>
       </div>
     </div>

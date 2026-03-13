@@ -36,33 +36,33 @@ const CumulativeReturnChart: React.FC<{ mergedData: MergedData[] }> = ({ mergedD
   const relevantMilestones = MILESTONES.filter(m => m < maxReturn * 1.15 && m > 0);
 
   return (
-    <div className="bg-slate-900/50 backdrop-blur-xl rounded-2xl p-6 shadow-2xl border border-slate-800">
+    <div className="bg-slate-900/50 backdrop-blur-xl rounded-2xl p-4 sm:p-6 shadow-2xl border border-slate-800">
       <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
         <TrendingUp className="text-emerald-400" size={24}/>
         Randament Cumulativ
       </h2>
 
-      <div className="bg-slate-800/50 rounded-lg p-3 mb-4 grid grid-cols-3 gap-2 text-xs">
-        <div>
-          <p className="text-slate-400">Randament Total</p>
+      <div className="bg-slate-800/50 rounded-lg p-3 mb-4 grid grid-cols-3 gap-1 text-xs">
+        <div className="min-w-0">
+          <p className="text-slate-400 truncate">Total</p>
           <p className={`font-bold ${currentReturn >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
             {currentReturn >= 0 ? '+' : ''}{currentReturn.toFixed(2)}%
           </p>
         </div>
-        <div>
-          <p className="text-slate-400">Randament Anual (CAGR)</p>
+        <div className="min-w-0">
+          <p className="text-slate-400 truncate">CAGR</p>
           <p className={`font-bold ${annualizedReturn >= 0 ? 'text-blue-400' : 'text-red-400'}`}>
             {annualizedReturn >= 0 ? '+' : ''}{annualizedReturn.toFixed(2)}%/an
           </p>
         </div>
-        <div>
-          <p className="text-slate-400">Maxim Atins</p>
+        <div className="min-w-0">
+          <p className="text-slate-400 truncate">Maxim</p>
           <p className="text-purple-400 font-bold">+{maxReturn.toFixed(2)}%</p>
         </div>
       </div>
 
-      <ResponsiveContainer width="100%" height={260}>
-        <AreaChart data={chartData}>
+      <ResponsiveContainer width="100%" height={240}>
+        <AreaChart data={chartData} margin={{ left: 0, right: 8, top: 4, bottom: 0 }}>
           <defs>
             <linearGradient id="cumulativeGradient" x1="0" y1="0" x2="0" y2="1">
               <stop offset="5%" stopColor="#10b981" stopOpacity={0.5}/>
@@ -76,13 +76,14 @@ const CumulativeReturnChart: React.FC<{ mergedData: MergedData[] }> = ({ mergedD
             tick={{fontSize: 9, fill: '#94a3b8'}}
             angle={-45}
             textAnchor="end"
-            height={60}
-            interval={Math.floor(chartData.length / 8)}
+            height={55}
+            interval={Math.floor(chartData.length / 6)}
           />
           <YAxis
             stroke="#94a3b8"
-            tick={{fill: '#94a3b8'}}
+            tick={{fill: '#94a3b8', fontSize: 10}}
             tickFormatter={(val: number) => `${val.toFixed(0)}%`}
+            width={42}
           />
           <Tooltip
             contentStyle={{backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px'}}

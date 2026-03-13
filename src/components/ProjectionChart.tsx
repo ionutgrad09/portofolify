@@ -78,9 +78,16 @@ const ProjectionChart: React.FC<{ mergedData: MergedData[] }> = ({ mergedData })
   const preTaxDeltas  = weeklyDeltas.filter(d => d.year < TAX_CHANGE_YEAR);
   const postTaxDeltas = weeklyDeltas.filter(d => d.year >= TAX_CHANGE_YEAR);
 
-  // stdDev from all data (volatility is regime-independent)
+  // End-to-end weekly average: totalGrowth / totalWeeks (matches FinancialGoalsProgress method)
   const allDeltas = weeklyDeltas.map(d => d.delta);
-  const overallAvgWeekly = avg(allDeltas);
+  const startMs = parseDDMMYYYY(sortedData[0].date).getTime();
+  const endMs = parseDDMMYYYY(lastEntry.date).getTime();
+  const totalWeeks = (endMs - startMs) / (7 * 24 * 60 * 60 * 1000);
+  const overallAvgWeekly = totalWeeks > 0
+    ? (currentWealth - sortedData[0].netWorth) / totalWeeks
+    : avg(allDeltas);
+
+  // stdDev from all data (volatility is regime-independent)
   const variance = allDeltas.reduce((sum, d) => sum + Math.pow(d - overallAvgWeekly, 2), 0) / allDeltas.length;
   const stdDev = Math.sqrt(variance);
 

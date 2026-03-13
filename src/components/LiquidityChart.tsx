@@ -32,25 +32,25 @@ const LiquidityChart: React.FC<{ mergedData: MergedData[] }> = ({ mergedData }) 
   const illiquidPct = totalLatest > 0 ? ((latest.illiquid / totalLatest) * 100).toFixed(1) : '0';
 
   return (
-    <div className="bg-slate-900/50 backdrop-blur-xl rounded-2xl p-6 shadow-2xl border border-slate-800">
+    <div className="bg-slate-900/50 backdrop-blur-xl rounded-2xl p-4 sm:p-6 shadow-2xl border border-slate-800">
       <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
         <Droplets className="text-cyan-400" size={24}/>
         Lichiditate vs Active Fizice
       </h2>
 
-      <div className="bg-slate-800/50 rounded-lg p-3 mb-4 grid grid-cols-2 gap-2 text-xs">
-        <div>
-          <p className="text-slate-400">Lichide actuale (Cash + Investiții)</p>
-          <p className="text-cyan-400 font-bold">{formatEUR(latest.liquid)} ({liquidPct}%)</p>
+      <div className="bg-slate-800/50 rounded-lg p-3 mb-4 grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+        <div className="flex flex-col gap-0.5">
+          <p className="text-slate-400">Lichide (Cash + Investiții)</p>
+          <p className="text-cyan-400 font-bold">{formatEUR(latest.liquid)} <span className="text-slate-400 font-normal">({liquidPct}%)</span></p>
         </div>
-        <div>
-          <p className="text-slate-400">Nelichide actuale (Active Fizice)</p>
-          <p className="text-amber-400 font-bold">{formatEUR(latest.illiquid)} ({illiquidPct}%)</p>
+        <div className="flex flex-col gap-0.5">
+          <p className="text-slate-400">Nelichide (Active Fizice)</p>
+          <p className="text-amber-400 font-bold">{formatEUR(latest.illiquid)} <span className="text-slate-400 font-normal">({illiquidPct}%)</span></p>
         </div>
       </div>
 
-      <ResponsiveContainer width="100%" height={260}>
-        <AreaChart data={chartData}>
+      <ResponsiveContainer width="100%" height={240}>
+        <AreaChart data={chartData} margin={{ left: 0, right: 8, top: 4, bottom: 0 }}>
           <defs>
             <linearGradient id="liquidGrad" x1="0" y1="0" x2="0" y2="1">
               <stop offset="5%" stopColor="#06b6d4" stopOpacity={0.5}/>
@@ -68,13 +68,14 @@ const LiquidityChart: React.FC<{ mergedData: MergedData[] }> = ({ mergedData }) 
             tick={{ fontSize: 9, fill: '#94a3b8' }}
             angle={-45}
             textAnchor="end"
-            height={60}
-            interval={Math.floor(chartData.length / 8)}
+            height={55}
+            interval={Math.floor(chartData.length / 6)}
           />
           <YAxis
             stroke="#94a3b8"
-            tick={{ fill: '#94a3b8' }}
+            tick={{ fill: '#94a3b8', fontSize: 10 }}
             tickFormatter={(val: number) => `€${(val / 1000).toFixed(0)}k`}
+            width={46}
           />
           <Tooltip
             contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px' }}
@@ -86,9 +87,9 @@ const LiquidityChart: React.FC<{ mergedData: MergedData[] }> = ({ mergedData }) 
             }}
           />
           <Legend
-            wrapperStyle={{ paddingTop: 10, color: '#94a3b8', fontSize: 12 }}
+            wrapperStyle={{ paddingTop: 8, fontSize: 11 }}
             formatter={(value: string) => {
-              const labels: Record<string, string> = { liquid: 'Lichide (Cash + Investiții)', illiquid: 'Active Fizice' };
+              const labels: Record<string, string> = { liquid: 'Lichide', illiquid: 'Active Fizice' };
               return <span style={{ color: '#94a3b8' }}>{labels[value] ?? value}</span>;
             }}
           />
