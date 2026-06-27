@@ -59,14 +59,22 @@ const MonthlyPerformanceHeatmap: React.FC<MonthlyPerformanceHeatmapProps> = ({ m
 
   const getColor = (value: number) => {
     if (!value || value === 0) return 'bg-slate-700';
-    if (value > 10) return 'bg-green-600';
-    if (value > 5) return 'bg-green-500';
-    if (value > 2) return 'bg-green-400';
-    if (value > 0) return 'bg-green-300';
-    if (value > -2) return 'bg-red-300';
-    if (value > -5) return 'bg-red-400';
-    if (value > -10) return 'bg-red-500';
-    return 'bg-red-600';
+    if (value >= 25) return 'bg-emerald-950';
+    if (value >= 20) return 'bg-emerald-900';
+    if (value >= 15) return 'bg-emerald-800';
+    if (value >= 10) return 'bg-emerald-700';
+    if (value >= 8)  return 'bg-emerald-600';
+    if (value >= 5)  return 'bg-emerald-500';
+    if (value >= 3)  return 'bg-emerald-400';
+    if (value > 0)   return 'bg-emerald-300';
+    if (value > -3)  return 'bg-red-300';
+    if (value > -5)  return 'bg-red-400';
+    if (value > -8)  return 'bg-red-500';
+    if (value > -10) return 'bg-red-600';
+    if (value > -15) return 'bg-red-700';
+    if (value > -20) return 'bg-red-800';
+    if (value > -25) return 'bg-red-900';
+    return 'bg-red-950';
   };
 
   // Selection state for clicked cell
@@ -119,14 +127,26 @@ const MonthlyPerformanceHeatmap: React.FC<MonthlyPerformanceHeatmapProps> = ({ m
       </div>
 
       {/* Legend */}
-      <div className="mt-4 flex items-center justify-center gap-2 text-xs">
-        <span className="text-slate-400">Mai puțin</span>
-        <div className="w-4 h-4 bg-red-600 rounded"></div>
-        <div className="w-4 h-4 bg-red-400 rounded"></div>
-        <div className="w-4 h-4 bg-slate-700 rounded"></div>
-        <div className="w-4 h-4 bg-green-400 rounded"></div>
-        <div className="w-4 h-4 bg-green-600 rounded"></div>
-        <span className="text-slate-400">Mai mult</span>
+      <div className="mt-4 flex items-center justify-center gap-1 text-xs flex-wrap">
+        <span className="text-slate-400 mr-1">−</span>
+        <div className="w-4 h-4 bg-red-950 rounded" title="≤ −25%"></div>
+        <div className="w-4 h-4 bg-red-900 rounded" title="−20%"></div>
+        <div className="w-4 h-4 bg-red-800 rounded" title="−15%"></div>
+        <div className="w-4 h-4 bg-red-700 rounded" title="−10%"></div>
+        <div className="w-4 h-4 bg-red-600 rounded" title="−8%"></div>
+        <div className="w-4 h-4 bg-red-500 rounded" title="−5%"></div>
+        <div className="w-4 h-4 bg-red-400 rounded" title="−3%"></div>
+        <div className="w-4 h-4 bg-red-300 rounded" title="0% to −3%"></div>
+        <div className="w-4 h-4 bg-slate-700 rounded" title="0%"></div>
+        <div className="w-4 h-4 bg-emerald-300 rounded" title="0% to 3%"></div>
+        <div className="w-4 h-4 bg-emerald-400 rounded" title="3%"></div>
+        <div className="w-4 h-4 bg-emerald-500 rounded" title="5%"></div>
+        <div className="w-4 h-4 bg-emerald-600 rounded" title="8%"></div>
+        <div className="w-4 h-4 bg-emerald-700 rounded" title="10%"></div>
+        <div className="w-4 h-4 bg-emerald-800 rounded" title="15%"></div>
+        <div className="w-4 h-4 bg-emerald-900 rounded" title="20%"></div>
+        <div className="w-4 h-4 bg-emerald-950 rounded" title="≥ 25%"></div>
+        <span className="text-slate-400 ml-1">+</span>
       </div>
 
       {/* Details panel for selected month */}

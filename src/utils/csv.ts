@@ -77,7 +77,7 @@ export const processCashSplitCSVData = (csvText: string): CashSplitData[] => {
       sursa,
       ron: leiValue,
       eur: eurValue,
-      totalEur: eurValue + (leiValue / 5)
+      totalEur: eurValue + (leiValue / 5.24)
     };
   }).filter((item): item is CashSplitData => item !== null && (item.ron > 0 || item.eur > 0));
 };

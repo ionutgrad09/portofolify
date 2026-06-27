@@ -28,32 +28,35 @@ const FinancialGoalsProgress: React.FC<FinancialGoalsProgressProps> = ({ mergedD
   const startWealth = sortedData[0].netWorth;
   const currentWealth = sortedData[sortedData.length - 1].netWorth;
 
+  // Exclude the calc-adjustment date from rate calculations
+  const calcData = sortedData;
+
   // All-time average monthly earning
-  const startDate = parseDDMMYYYY(sortedData[0].date);
-  const endDate = parseDDMMYYYY(sortedData[sortedData.length - 1].date);
+  const startDate = parseDDMMYYYY(calcData[0].date);
+  const endDate = parseDDMMYYYY(calcData[calcData.length - 1].date);
   const monthsElapsed =
     (endDate.getFullYear() - startDate.getFullYear()) * 12 +
     (endDate.getMonth() - startDate.getMonth()) +
     (endDate.getDate() - startDate.getDate()) / 30;
 
-  const totalGrowth = currentWealth - startWealth;
+  const totalGrowth = calcData[calcData.length - 1].netWorth - calcData[0].netWorth;
   const averageMonthlyEarning = monthsElapsed > 0 ? totalGrowth / monthsElapsed : 0;
 
-  // Recent trend: entries from the last 3 months, start-to-end gain / elapsed months.
-  const threeMonthsAgo = new Date(endDate.getTime());
-  threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
-  const trendEntries = sortedData.filter(
-    e => parseDDMMYYYY(e.date).getTime() >= threeMonthsAgo.getTime()
-  );
+  const computeTrend = (months: number): number => {
+    const cutoff = new Date(endDate.getTime());
+    cutoff.setMonth(cutoff.getMonth() - months);
+    const entries = calcData.filter(e => parseDDMMYYYY(e.date).getTime() >= cutoff.getTime());
+    if (entries.length < 2) return averageMonthlyEarning;
+    const start = parseDDMMYYYY(entries[0].date);
+    const end   = parseDDMMYYYY(entries[entries.length - 1].date);
+    const elapsed = (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24 * 30.44);
+    if (elapsed < 0.5) return averageMonthlyEarning;
+    return (entries[entries.length - 1].netWorth - entries[0].netWorth) / elapsed;
+  };
 
-  const trendStart  = parseDDMMYYYY(trendEntries[0].date);
-  const trendEnd    = parseDDMMYYYY(trendEntries[trendEntries.length - 1].date);
-  const trendMonths = (trendEnd.getTime() - trendStart.getTime()) / (1000 * 60 * 60 * 24 * 30.44);
-  const trendGain   = trendEntries[trendEntries.length - 1].netWorth - trendEntries[0].netWorth;
-
-  const recentMonthlyEarning = trendEntries.length >= 2 && trendMonths >= 0.5
-    ? trendGain / trendMonths
-    : averageMonthlyEarning;
+  const recentMonthlyEarning  = computeTrend(3);
+  const trend6MonthlyEarning  = computeTrend(6);
+  const trend12MonthlyEarning = computeTrend(12);
 
   // ================================
   // Financial goals
@@ -147,13 +150,7 @@ const FinancialGoalsProgress: React.FC<FinancialGoalsProgressProps> = ({ mergedD
          ================================ */}
       <div className="mt-6 bg-slate-800/50 p-4 rounded-lg">
         <p className="text-slate-400 text-xs mb-2">Statistici Progres</p>
-        <div className="grid grid-cols-3 gap-4">
-          <div>
-            <p className="text-xs text-slate-500">Creștere Totală</p>
-            <p className="text-lg font-bold text-green-400">
-              {((currentWealth / startWealth - 1) * 100).toFixed(1)}%
-            </p>
-          </div>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           <div>
             <p className="text-xs text-slate-500">Medie Istorică/lună</p>
             <p className="text-lg font-bold text-blue-400">
@@ -164,6 +161,18 @@ const FinancialGoalsProgress: React.FC<FinancialGoalsProgressProps> = ({ mergedD
             <p className="text-xs text-slate-500">Trend 3 luni/lună</p>
             <p className={`text-lg font-bold ${recentMonthlyEarning >= averageMonthlyEarning ? 'text-emerald-400' : 'text-orange-400'}`}>
               {formatEUR(recentMonthlyEarning)}
+            </p>
+          </div>
+          <div>
+            <p className="text-xs text-slate-500">Trend 6 luni/lună</p>
+            <p className={`text-lg font-bold ${trend6MonthlyEarning >= averageMonthlyEarning ? 'text-emerald-400' : 'text-orange-400'}`}>
+              {formatEUR(trend6MonthlyEarning)}
+            </p>
+          </div>
+          <div>
+            <p className="text-xs text-slate-500">Trend 1 an/lună</p>
+            <p className={`text-lg font-bold ${trend12MonthlyEarning >= averageMonthlyEarning ? 'text-emerald-400' : 'text-orange-400'}`}>
+              {formatEUR(trend12MonthlyEarning)}
             </p>
           </div>
         </div>

@@ -49,6 +49,55 @@ import TerDragChart from "./components/TerDragChart";
 import InvestmentGrowthChart from "./components/InvestmentGrowthChart";
 import PortfolioDriftChart from "./components/PortfolioDriftChart";
 import InvestmentForecastChart from "./components/InvestmentForecastChart";
+import PerformanceStatsBar from "./components/PerformanceStatsBar";
+import Rolling12MonthChart from "./components/Rolling12MonthChart";
+import MilestoneTimeline from "./components/MilestoneTimeline";
+import CashConcentrationChart from "./components/CashConcentrationChart";
+import AssetWeightChart from "./components/AssetWeightChart";
+import AssetYoYChart from "./components/AssetYoYChart";
+import PnLHistogram from "./components/PnLHistogram";
+import MonthlyPnLChart from "./components/MonthlyPnLChart";
+import MomentumChart from "./components/MomentumChart";
+import EmergencyFundCard from "./components/EmergencyFundCard";
+
+
+const buildMergedData = (historyEntries: WealthData[], assetEntries: AssetData[]): MergedData[] => {
+  if (historyEntries.length === 0 && assetEntries.length === 0) return [];
+
+  const allDates = new Set([...historyEntries.map(d => d.date), ...assetEntries.map(d => d.date)]);
+  const sortedDates = Array.from(allDates).sort((a, b) => {
+    const [dayA, monthA, yearA] = a.split('.').map(Number);
+    const [dayB, monthB, yearB] = b.split('.').map(Number);
+    return new Date(yearA, monthA - 1, dayA).getTime() - new Date(yearB, monthB - 1, dayB).getTime();
+  });
+
+  let lastHistory: WealthData = { eur: 0, investments: 0, cash: 0, ron: 0, gainLoss: 0, date: '', comment: '' };
+  let lastAssets: AssetData = { total: 0, assets: {}, date: '' };
+
+  return sortedDates.map(date => {
+    const historyEntry = historyEntries.find(h => h.date === date);
+    const assetsEntry = assetEntries.find(a => a.date === date);
+
+    if (historyEntry) lastHistory = historyEntry;
+    if (assetsEntry) lastAssets = assetsEntry;
+
+    const netWorth = lastHistory.eur + lastAssets.total;
+    const { eur, investments, cash, ron, gainLoss, comment } = lastHistory;
+
+    return {
+      date,
+      eur,
+      investments,
+      cash,
+      ron,
+      gainLoss,
+      comment,
+      assetsTotal: lastAssets.total,
+      assetsBreakdown: lastAssets.assets,
+      netWorth
+    };
+  });
+};
 
 const WealthTracker: React.FC = () => {
   const [historyData, setHistoryData] = useState<WealthData[]>(() => getFromStorage<WealthData>(CONFIG.STORAGE_KEYS.DATA));
@@ -180,45 +229,14 @@ const WealthTracker: React.FC = () => {
     }
   };
 
-  const mergedData: MergedData[] = useMemo(() => {
-    if (historyData.length === 0 && assetsData.length === 0) return [];
+  const fullMergedData: MergedData[] = useMemo(() => buildMergedData(historyData, assetsData), [historyData, assetsData]);
 
-    const allDates = new Set([...historyData.map(d => d.date), ...assetsData.map(d => d.date)]);
-    const sortedDates = Array.from(allDates).sort((a, b) => {
-      const [dayA, monthA, yearA] = a.split('.').map(Number);
-      const [dayB, monthB, yearB] = b.split('.').map(Number);
-      return new Date(yearA, monthA - 1, dayA).getTime() - new Date(yearB, monthB - 1, dayB).getTime();
-    });
+  const chartData = fullMergedData;
+  const projectionData = fullMergedData;
+  const historyChartData = historyData;
+  const assetsChartData = assetsData;
 
-    let lastHistory: WealthData = { eur: 0, investments: 0, cash: 0, ron: 0, gainLoss: 0, date: '', comment: '' };
-    let lastAssets: AssetData = { total: 0, assets: {}, date: '' };
-
-    return sortedDates.map(date => {
-      const historyEntry = historyData.find(h => h.date === date);
-      const assetsEntry = assetsData.find(a => a.date === date);
-
-      if (historyEntry) lastHistory = historyEntry;
-      if (assetsEntry) lastAssets = assetsEntry;
-
-      const netWorth = lastHistory.eur + lastAssets.total;
-      const { eur, investments, cash, ron, gainLoss, comment } = lastHistory;
-
-      return {
-        date,
-        eur,
-        investments,
-        cash,
-        ron,
-        gainLoss,
-        comment,
-        assetsTotal: lastAssets.total,
-        assetsBreakdown: lastAssets.assets,
-        netWorth
-      };
-    });
-  }, [historyData, assetsData]);
-
-  const assetAllocationData: AssetAllocationData[] = mergedData.map(entry => {
+  const assetAllocationData: AssetAllocationData[] = chartData.map(entry => {
     const total = entry.netWorth;
     const rawInvestments = total > 0 ? (entry.investments / total) * 100 : 0;
     const rawCash = total > 0 ? (entry.cash / total) * 100 : 0;
@@ -261,15 +279,22 @@ const WealthTracker: React.FC = () => {
     return <EmptyState onSync={fetchAndProcessAllCSV}/>
   }
 
-  const latestData = mergedData[mergedData.length - 1];
-  const previousData = mergedData.length > 1 ? mergedData[mergedData.length - 2] : latestData;
+  // Keep chart/total series intact; use filtered series only for KPI/projection calculations.
+  const calculationData = projectionData;
+  const kpiData = calculationData.length > 0 ? calculationData : fullMergedData;
+
+  const latestData = fullMergedData[fullMergedData.length - 1];
+  const latestKPIData = kpiData[kpiData.length - 1];
+  const previousKPIData = kpiData.length > 1 ? kpiData[kpiData.length - 2] : latestKPIData;
 
   // ASSETS CALCULATIONS
   const totalAssetsEUR = latestData.assetsTotal;
+  const kpiAssetsEUR = latestKPIData.assetsTotal;
   const grandTotal = latestData.netWorth;
+  const kpiReferenceTotal = latestKPIData.netWorth;
 
-  const changeNetWorth = latestData.netWorth - previousData.netWorth;
-  const changePercent = previousData.netWorth !== 0 ? ((changeNetWorth / previousData.netWorth) * 100)?.toFixed(2) : '0';
+  const changeNetWorth = latestKPIData.netWorth - previousKPIData.netWorth;
+  const changePercent = previousKPIData.netWorth !== 0 ? ((changeNetWorth / previousKPIData.netWorth) * 100)?.toFixed(2) : '0';
 
   // CASH SPLIT CALCULATIONS
   const totalCashEUR = cashSplitData.reduce((sum, item) => sum + item.totalEur, 0);
@@ -281,7 +306,7 @@ const WealthTracker: React.FC = () => {
     }))
     .sort((a, b) => b.value - a.value);
 
-  const latestAssetsEntry = assetsData.length > 0 ? assetsData[assetsData.length - 1] : {total: 0, assets: {}};
+  const latestAssetsEntry = assetsChartData.length > 0 ? assetsChartData[assetsChartData.length - 1] : {total: 0, assets: {}};
   const sortedAssetsPieData = Object.entries(latestAssetsEntry.assets || {})
     .map(([name, value], index) => ({
       name,
@@ -290,7 +315,7 @@ const WealthTracker: React.FC = () => {
     }))
     .sort((a, b) => b.value - a.value);
 
-  const assetsEvolutionData = assetsData.map(entry => {
+  const assetsEvolutionData = assetsChartData.map(entry => {
     return {
       date: entry.date,
       ...entry.assets
@@ -333,8 +358,9 @@ const WealthTracker: React.FC = () => {
         {/* KPI Cards — always visible */}
         <KPICards
           grandTotal={grandTotal}
-          latestData={latestData}
-          totalAssetsEUR={totalAssetsEUR}
+          latestData={latestKPIData}
+          kpiReferenceTotal={kpiReferenceTotal}
+          totalAssetsEUR={kpiAssetsEUR}
           changeNetWorth={changeNetWorth}
           changePercent={changePercent}
           cashSplitLength={cashSplitData.length}
@@ -372,7 +398,7 @@ const WealthTracker: React.FC = () => {
                   Valoarea Totală
                 </h2>
                 <ResponsiveContainer width="100%" height={300}>
-                  <AreaChart data={mergedData}>
+                  <AreaChart data={chartData}>
                     <defs>
                       <linearGradient id="colorNetWorth" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8}/>
@@ -435,10 +461,10 @@ const WealthTracker: React.FC = () => {
             <div className="bg-slate-900/50 backdrop-blur-xl rounded-2xl p-6 shadow-2xl border border-slate-800">
               <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
                 <DollarSign className="text-green-400" size={24}/>
-                Evoluția Activelor (Investiții, Cash, Active)
+                Evoluția Activelor (Investiții, Active, Cash)
               </h2>
               <ResponsiveContainer width="100%" height={280}>
-                <AreaChart data={mergedData}>
+                <AreaChart data={chartData}>
                   <defs>
                     <linearGradient id="colorInvestments" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="5%" stopColor="#a855f7" stopOpacity={0.8}/>
@@ -457,8 +483,8 @@ const WealthTracker: React.FC = () => {
                   <XAxis dataKey="date" stroke="#94a3b8" tick={{fontSize: 10}} angle={-45} textAnchor="end" height={60}/>
                   <YAxis stroke="#94a3b8" tickFormatter={(val: number) => `€${(val/1000).toFixed(0)}k`}/>
                   <Tooltip content={<CustomTooltip/>}/>
-                  <Area type="monotone" dataKey="assetsTotal" stackId="a" stroke="#f59e0b" fillOpacity={1} fill="url(#colorAssets2)" name="Active Fizice"/>
                   <Area type="monotone" dataKey="investments" stackId="a" stroke="#a855f7" fillOpacity={1} fill="url(#colorInvestments)" name="Investiții"/>
+                  <Area type="monotone" dataKey="assetsTotal" stackId="a" stroke="#f59e0b" fillOpacity={1} fill="url(#colorAssets2)" name="Active Fizice"/>
                   <Area type="monotone" dataKey="cash" stackId="a" stroke="#22c55e" fillOpacity={1} fill="url(#colorCash)" name="Cash"/>
                   <Legend wrapperStyle={{paddingTop: 8}}/>
                 </AreaChart>
@@ -467,8 +493,8 @@ const WealthTracker: React.FC = () => {
 
             {/* Cumulative return + Liquidity */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <CumulativeReturnChart mergedData={mergedData}/>
-              <LiquidityChart mergedData={mergedData}/>
+              <CumulativeReturnChart mergedData={chartData}/>
+              <LiquidityChart mergedData={chartData}/>
             </div>
           </div>
         )}
@@ -476,24 +502,27 @@ const WealthTracker: React.FC = () => {
         {/* ── ANALIZĂ ──────────────────────────────────────────── */}
         {activeTab === 'analiza' && (
           <div className="space-y-6">
+            <PerformanceStatsBar mergedData={chartData}/>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <DrawdownChart mergedData={mergedData}/>
-              <AnnualPerformanceChart mergedData={mergedData}/>
+              <DrawdownChart mergedData={chartData}/>
+              <AnnualPerformanceChart mergedData={chartData}/>
             </div>
-            <MonthlyPerformanceHeatmap mergedData={mergedData}/>
+            <Rolling12MonthChart mergedData={chartData}/>
+            <MomentumChart mergedData={chartData}/>
+            <MonthlyPerformanceHeatmap mergedData={chartData}/>
             <div className="bg-slate-900/50 backdrop-blur-xl rounded-2xl p-6 shadow-2xl border border-slate-800">
               <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
                 <Activity className="text-purple-400" size={24}/>
                 Profit & Pierdere Săptămânală
               </h2>
               <ResponsiveContainer width="100%" height={260}>
-                <BarChart data={historyData}>
+                <BarChart data={historyChartData}>
                   <CartesianGrid stroke="#334155" strokeDasharray="3 3"/>
                   <XAxis dataKey="date" stroke="#94a3b8" tick={{fontSize: 9}} angle={-45} textAnchor="end" height={50}/>
                   <YAxis stroke="#94a3b8" tick={{fill: '#94a3b8'}}/>
                   <Tooltip content={<CustomTooltip ron/>} cursor={{fill: 'rgba(255,255,255,0.1)'}}/>
                   <Bar dataKey="gainLoss" name="Profit">
-                    {historyData.map((entry, index) => (
+                    {historyChartData.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={entry.gainLoss >= 0 ? '#22c55e' : '#ef4444'}/>
                     ))}
                   </Bar>
@@ -507,10 +536,11 @@ const WealthTracker: React.FC = () => {
         {activeTab === 'proiectii' && (
           <div className="space-y-6">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <FinancialGoalsProgress mergedData={mergedData}/>
-              <ProjectionChart mergedData={mergedData}/>
+              <FinancialGoalsProgress mergedData={projectionData}/>
+              <ProjectionChart mergedData={projectionData}/>
             </div>
-            <ScenarioProjectionChart mergedData={mergedData}/>
+            <MilestoneTimeline mergedData={projectionData}/>
+            <ScenarioProjectionChart mergedData={projectionData}/>
           </div>
         )}
 
@@ -540,8 +570,7 @@ const WealthTracker: React.FC = () => {
             </div>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <div className="bg-slate-900/50 backdrop-blur-xl rounded-2xl p-6 shadow-2xl border border-slate-800">
-                <h3 className="text-lg font-bold text-white mb-4">Distribuția Lichidităților</h3>
-                <ResponsiveContainer width="100%" height={380}>
+                <h3 className="text-lg font-bold text-white mb-4">Distribuția Lichidităților</h3>                <ResponsiveContainer width="100%" height={380}>
                   <PieChart>
                     <Pie
                       data={sortedCashSplitPieData}
@@ -572,11 +601,13 @@ const WealthTracker: React.FC = () => {
               </div>
               <CashSplitTable data={cashSplitData} totalCashEUR={totalCashEUR}/>
             </div>
+            <CashConcentrationChart data={cashSplitData} totalCashEUR={totalCashEUR}/>
+            <EmergencyFundCard totalCashEUR={totalCashEUR}/>
           </div>
         )}
 
         {/* ── ACTIVE ───────────────────────────────────────────── */}
-        {activeTab === 'active' && assetsData.length > 0 && (
+        {activeTab === 'active' && assetsChartData.length > 0 && (
           <div className="space-y-6">
             <div className="flex items-center gap-2 mb-2">
               <Building className="text-orange-400" size={28}/>
@@ -648,13 +679,21 @@ const WealthTracker: React.FC = () => {
                 </tbody>
               </table>
             </div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <AssetWeightChart assetsData={assetsChartData} mergedData={chartData}/>
+              <AssetYoYChart assetsData={assetsChartData}/>
+            </div>
           </div>
         )}
 
         {/* ── ISTORIC ──────────────────────────────────────────── */}
         {activeTab === 'istoric' && (
           <div className="space-y-6">
-            <HistoryTable data={historyData}/>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <PnLHistogram mergedData={chartData}/>
+              <MonthlyPnLChart mergedData={chartData}/>
+            </div>
+            <HistoryTable data={historyChartData}/>
           </div>
         )}
 

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Target } from 'lucide-react';
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 
@@ -41,76 +41,74 @@ const weekOfYear = (date: Date): number => {
   return Math.min(Math.floor((date.getTime() - start.getTime()) / (7 * 24 * 60 * 60 * 1000)), 51);
 };
 
-// From 2026 onward, taxes increased by 12% → net gains are proportionally lower.
-// Weeks where we already have 2026 actuals are used as-is (they already reflect the new rate).
-// Weeks we haven't reached yet fall back to the pre-2026 seasonal pattern scaled down.
-const TAX_CHANGE_YEAR = 2026;
-const TAX_FACTOR = 1 - 0.12; // 12% higher taxes → 12% less net gain
 
 const avg = (arr: number[]) => arr.reduce((a, b) => a + b, 0) / arr.length;
 
+const CONTRIB_KEY = 'portofolify_monthly_contrib';
+const RETURN_KEY  = 'portofolify_annual_return';
+
 const ProjectionChart: React.FC<{ mergedData: MergedData[] }> = ({ mergedData }) => {
+  const [monthlyContrib, setMonthlyContrib] = useState<number>(() =>
+    Number(localStorage.getItem(CONTRIB_KEY) || '1500'));
+  const [annualReturn, setAnnualReturn] = useState<number>(() =>
+    Number(localStorage.getItem(RETURN_KEY) || '7.5'));
+
+  const handleContrib = (v: number) => { setMonthlyContrib(v); localStorage.setItem(CONTRIB_KEY, String(v)); };
+  const handleReturn  = (v: number) => { setAnnualReturn(v);   localStorage.setItem(RETURN_KEY,  String(v)); };
+
   if (!mergedData || mergedData.length < 2) {
     return null;
   }
 
-  const sortedData = [...mergedData].sort(
-    (a, b) => parseDDMMYYYY(a.date).getTime() - parseDDMMYYYY(b.date).getTime()
-  );
+  const sortedData = [...mergedData]
+    .sort((a, b) => parseDDMMYYYY(a.date).getTime() - parseDDMMYYYY(b.date).getTime());
 
-  const lastEntry = sortedData[sortedData.length - 1];
+  // Use real latest entry (may include the excluded date) as projection start
+  const lastEntry = [...mergedData]
+    .sort((a, b) => parseDDMMYYYY(a.date).getTime() - parseDDMMYYYY(b.date).getTime())
+    .at(-1)!;
   const currentWealth = lastEntry.netWorth;
 
   // Compute week-over-week deltas, normalized to 7 days, tagged with year
-  const weeklyDeltas: { week: number; delta: number; year: number }[] = [];
+  const weeklyDeltas: { week: number; delta: number }[] = [];
   for (let i = 1; i < sortedData.length; i++) {
     const prevDate = parseDDMMYYYY(sortedData[i - 1].date);
     const currDate = parseDDMMYYYY(sortedData[i].date);
     const days = (currDate.getTime() - prevDate.getTime()) / (24 * 60 * 60 * 1000);
     if (days <= 0) continue;
     const normalizedDelta = ((sortedData[i].netWorth - sortedData[i - 1].netWorth) / days) * 7;
-    weeklyDeltas.push({ week: weekOfYear(currDate), delta: normalizedDelta, year: currDate.getFullYear() });
+    weeklyDeltas.push({ week: weekOfYear(currDate), delta: normalizedDelta });
   }
 
   if (weeklyDeltas.length === 0) return null;
 
-  // Split deltas by tax regime
-  const preTaxDeltas  = weeklyDeltas.filter(d => d.year < TAX_CHANGE_YEAR);
-  const postTaxDeltas = weeklyDeltas.filter(d => d.year >= TAX_CHANGE_YEAR);
-
-  // End-to-end weekly average: totalGrowth / totalWeeks (matches FinancialGoalsProgress method)
+  // End-to-end weekly average
   const allDeltas = weeklyDeltas.map(d => d.delta);
   const startMs = parseDDMMYYYY(sortedData[0].date).getTime();
-  const endMs = parseDDMMYYYY(lastEntry.date).getTime();
+  const endMs   = parseDDMMYYYY(lastEntry.date).getTime();
   const totalWeeks = (endMs - startMs) / (7 * 24 * 60 * 60 * 1000);
   const overallAvgWeekly = totalWeeks > 0
-    ? (currentWealth - sortedData[0].netWorth) / totalWeeks
+    ? (lastEntry.netWorth - sortedData[0].netWorth) / totalWeeks
     : avg(allDeltas);
 
-  // stdDev from all data (volatility is regime-independent)
   const variance = allDeltas.reduce((sum, d) => sum + Math.pow(d - overallAvgWeekly, 2), 0) / allDeltas.length;
   const stdDev = Math.sqrt(variance);
 
-  // Seasonal buckets per regime
-  const preTaxByWeek:  number[][] = Array.from({ length: 52 }, () => []);
-  const postTaxByWeek: number[][] = Array.from({ length: 52 }, () => []);
-  preTaxDeltas.forEach(({ week, delta }) => preTaxByWeek[week].push(delta));
-  postTaxDeltas.forEach(({ week, delta }) => postTaxByWeek[week].push(delta));
+  // Seasonal buckets across all data
+  const byWeek: number[][] = Array.from({ length: 52 }, () => []);
+  weeklyDeltas.forEach(({ week, delta }) => byWeek[week].push(delta));
 
-  // Overall pre-tax avg — fallback when a week slot has no pre-tax data
-  const overallPreTaxAvg = preTaxDeltas.length > 0 ? avg(preTaxDeltas.map(d => d.delta)) : overallAvgWeekly;
-
-  // Projection seasonal averages (all projection weeks are 2026+):
-  //   • Use 2026 actuals directly when available (already reflect new tax regime)
-  //   • Otherwise scale pre-2026 pattern by TAX_FACTOR
-  const seasonalWeeklyAvg: number[] = postTaxByWeek.map((postSlot, i) => {
-    if (postSlot.length > 0) return avg(postSlot);
-    const preSlot = preTaxByWeek[i];
-    return (preSlot.length > 0 ? avg(preSlot) : overallPreTaxAvg) * TAX_FACTOR;
-  });
+  const seasonalWeeklyAvg: number[] = byWeek.map(slot =>
+    slot.length > 0 ? avg(slot) : overallAvgWeekly
+  );
 
   // Projected weekly average (for display)
   const projectedAvgWeekly = avg(seasonalWeeklyAvg);
+
+  // ── Contribution + investment return boost ──────────────────────
+  const weeklyContrib = monthlyContrib / 4.33;
+  let investmentBalance = lastEntry.investments;
+  const initialWeeklyReturn = investmentBalance * (annualReturn / 100) / 52;
 
   // Build 52-week projection
   const projectionData = [...sortedData] as any[];
@@ -121,7 +119,10 @@ const ProjectionChart: React.FC<{ mergedData: MergedData[] }> = ({ mergedData })
 
   for (let w = 0; w < 52; w++) {
     projDate.setDate(projDate.getDate() + 7);
-    const delta = seasonalWeeklyAvg[weekOfYear(projDate)];
+    const weeklyReturn = investmentBalance * (annualReturn / 100) / 52;
+    const extraBoost   = weeklyContrib + weeklyReturn;
+    investmentBalance += weeklyContrib + weeklyReturn;
+    const delta = seasonalWeeklyAvg[weekOfYear(projDate)] + extraBoost;
     currentTotal += delta;
     const spread = stdDev * Math.sqrt(w + 1);
     const dateStr = toDateStr(projDate);
@@ -168,22 +169,28 @@ const ProjectionChart: React.FC<{ mergedData: MergedData[] }> = ({ mergedData })
         <div className="grid grid-cols-3 gap-2 text-xs">
           <div>
             <p className="text-slate-400">Medie Istorică</p>
-            <p className="text-slate-300 font-bold">{formatEUR(overallAvgWeekly)}/săpt</p>
-            <p className="text-slate-500 text-[10px]">({formatEUR(overallAvgWeekly * 4.33)}/lună)</p>
+            <p className="text-white font-bold">{formatEUR(overallAvgWeekly)}/săpt</p>
+            <p className="text-slate-400 text-[10px]">({formatEUR(overallAvgWeekly * 4.33)}/lună)</p>
           </div>
           <div>
-            <p className="text-slate-400">Proiectat 2026+</p>
-            <p className="text-emerald-400 font-bold">{formatEUR(projectedAvgWeekly)}/săpt</p>
-            <p className="text-slate-500 text-[10px]">({formatEUR(projectedAvgWeekly * 4.33)}/lună)</p>
+            <p className="text-slate-400">Proiectat (cu boost)</p>
+            <p className="text-emerald-400 font-bold">{formatEUR(projectedAvgWeekly + weeklyContrib + initialWeeklyReturn)}/săpt</p>
+            <p className="text-slate-400 text-[10px]">({formatEUR((projectedAvgWeekly + weeklyContrib + initialWeeklyReturn) * 4.33)}/lună)</p>
           </div>
           <div>
             <p className="text-slate-400">Proiecție la 52 săpt</p>
             <p className="text-blue-400 font-bold">{formatEUR(endProjectedValue)}</p>
           </div>
         </div>
-        <div className="flex items-center gap-1.5 text-[10px] text-amber-400/80 border-t border-slate-700 pt-2">
-          <span>⚠</span>
-          <span>Taxe 2026 aplicate: săptămânile fără date reale sunt reduse cu 12% față de modelul 2025.</span>
+        <div className="border-t border-slate-700/50 pt-2 grid grid-cols-2 gap-2 text-xs">
+          <div>
+            <p className="text-slate-500">+ Contribuție lunară</p>
+            <p className="text-purple-400 font-bold">{formatEUR(monthlyContrib)}/lună</p>
+          </div>
+          <div>
+            <p className="text-slate-500">+ Randament investiții (~{annualReturn}%/an)</p>
+            <p className="text-amber-400 font-bold">{formatEUR(lastEntry.investments * (annualReturn / 100) / 12)}/lună inițial</p>
+          </div>
         </div>
       </div>
 
@@ -250,12 +257,8 @@ const ProjectionChart: React.FC<{ mergedData: MergedData[] }> = ({ mergedData })
               return (
                 <tr key={idx} className="border-b border-slate-800 hover:bg-slate-800/50 transition-colors">
                   <td className="py-2 px-2 font-medium">{proj.month}</td>
-                  <td className="text-right py-2 px-2 font-bold text-blue-400">
-                    {formatEUR(proj.projectedValue)}
-                  </td>
-                  <td className={`text-right py-2 px-2 font-bold ${gainColor}`}>
-                    {gainPrefix}{formatEUR(gain)}
-                  </td>
+                  <td className="text-right py-2 px-2 font-bold text-blue-400">{formatEUR(proj.projectedValue)}</td>
+                  <td className={`text-right py-2 px-2 font-bold ${gainColor}`}>{gainPrefix}{formatEUR(gain)}</td>
                 </tr>
               );
             })}
@@ -263,8 +266,39 @@ const ProjectionChart: React.FC<{ mergedData: MergedData[] }> = ({ mergedData })
           </table>
         </div>
       </div>
+
+      {/* Settings */}
+      <div className="mt-5 pt-4 border-t border-slate-700/50">
+        <p className="text-xs text-slate-400 mb-3 font-medium">Parametri proiecție</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label className="text-xs text-slate-400 mb-1 block">Contribuție lunară netă (EUR)</label>
+            <div className="flex flex-col gap-1.5">
+              <input type="number" min={0} step={100} value={monthlyContrib}
+                onChange={e => handleContrib(Number(e.target.value))}
+                className="bg-slate-800 border border-slate-600 text-white rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-blue-500 w-full" />
+              <input type="range" min={0} max={10000} step={100} value={monthlyContrib}
+                onChange={e => handleContrib(Number(e.target.value))}
+                className="w-full accent-purple-400" />
+            </div>
+          </div>
+          <div>
+            <label className="text-xs text-slate-400 mb-1 block">Randament anual investiții (%)</label>
+            <div className="flex flex-col gap-1.5">
+              <input type="number" min={0} max={30} step={0.5} value={annualReturn}
+                onChange={e => handleReturn(Number(e.target.value))}
+                className="bg-slate-800 border border-slate-600 text-white rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-blue-500 w-full" />
+              <input type="range" min={0} max={20} step={0.5} value={annualReturn}
+                onChange={e => handleReturn(Number(e.target.value))}
+                className="w-full accent-amber-400" />
+            </div>
+          </div>
+        </div>
+        <p className="text-[10px] text-slate-600 mt-2">Contribuția și randamentul se adaugă peste trendul istoric. Setările sunt salvate automat.</p>
+      </div>
     </div>
   );
 };
 
 export default ProjectionChart;
+

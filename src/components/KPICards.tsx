@@ -6,13 +6,14 @@ import React from "react";
 const KPICards: React.FC<{
   grandTotal: number;
   latestData: MergedData;
+  kpiReferenceTotal: number;
   totalAssetsEUR: number;
   changeNetWorth: number;
   changePercent: string;
   cashSplitLength: number;
   assetsCount: number;
   investmentDataLength: number;
-}> = ({grandTotal, latestData, totalAssetsEUR, changeNetWorth, changePercent, cashSplitLength, assetsCount, investmentDataLength}) => (
+}> = ({grandTotal, latestData, kpiReferenceTotal, totalAssetsEUR, changeNetWorth, changePercent, cashSplitLength, assetsCount, investmentDataLength}) => (
   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
     <div className="bg-gradient-to-br from-blue-600 to-blue-800 rounded-2xl p-6 shadow-2xl border border-blue-500/20 relative overflow-hidden">
       <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-16 -mt-16"></div>
@@ -38,7 +39,7 @@ const KPICards: React.FC<{
         </div>
         <div className="text-3xl font-bold text-white mb-2">{formatEUR(latestData.cash)}</div>
         <div className="text-green-200 text-sm mb-2">
-          {grandTotal ? ((latestData.cash / grandTotal) * 100)?.toFixed(1) : 0}% din total
+          {kpiReferenceTotal ? ((latestData.cash / kpiReferenceTotal) * 100)?.toFixed(1) : 0}% din total
         </div>
         <div className="flex items-center gap-1 text-sm text-green-300">
           <Target size={16}/>
@@ -55,7 +56,7 @@ const KPICards: React.FC<{
         </div>
         <div className="text-3xl font-bold text-white mb-2">{formatEUR(totalAssetsEUR)}</div>
         <div className="text-orange-200 text-sm mb-2">
-          {grandTotal ? ((totalAssetsEUR / grandTotal) * 100)?.toFixed(1) : 0}% din total
+          {kpiReferenceTotal ? ((totalAssetsEUR / kpiReferenceTotal) * 100)?.toFixed(1) : 0}% din total
         </div>
         <div className="flex items-center gap-1 text-sm text-orange-300">
           <Briefcase size={16}/>
@@ -72,7 +73,7 @@ const KPICards: React.FC<{
         </div>
         <div className="text-3xl font-bold text-white mb-2">{formatEUR(latestData.investments)}</div>
         <div className="text-purple-200 text-sm mb-2">
-          {grandTotal ? ((latestData.investments / grandTotal) * 100)?.toFixed(1) : 0}% din total
+          {kpiReferenceTotal ? ((latestData.investments / kpiReferenceTotal) * 100)?.toFixed(1) : 0}% din total
         </div>
         <div className="flex items-center gap-1 text-sm text-purple-300">
           <Activity size={16}/>

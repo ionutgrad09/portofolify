@@ -57,15 +57,36 @@ const MomentumChart: React.FC<{ mergedData: MergedData[] }> = ({ mergedData }) =
 
   return (
     <div className="bg-slate-900/50 backdrop-blur-xl rounded-2xl p-6 shadow-2xl border border-slate-800">
-      <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+      <h2 className="text-xl font-bold text-white mb-2 flex items-center gap-2">
         <Zap className="text-yellow-400" size={24}/>
         Momentum Săptămânal
       </h2>
 
+      {/* Explanation */}
+      <div className="bg-slate-800/40 border border-slate-700/50 rounded-xl p-4 mb-4 space-y-2 text-xs text-slate-400">
+        <p>
+          <span className="text-white font-semibold">Ce arată acest grafic?</span>{' '}
+          Viteza cu care crește sau scade averea ta, săptămână de săptămână.
+        </p>
+        <p>
+          <span className="text-amber-400 font-semibold">Linia galbenă (4 săpt)</span>{' '}
+          — media ultimelor 4 săptămâni. Reacționează rapid la schimbări recente.
+        </p>
+        <p>
+          <span className="text-blue-400 font-semibold">Linia albastră (12 săpt)</span>{' '}
+          — media ultimelor 12 săptămâni. Arată trendul pe termen mediu, mai puțin influențată de fluctuații.
+        </p>
+        <p>
+          <span className="text-white font-semibold">Cum interpretezi?</span>{' '}
+          Când galbenul este <span className="text-emerald-400">deasupra</span> albastrului → accelerezi, crești mai repede ca de obicei.{' '}
+          Când galbenul este <span className="text-red-400">sub</span> albastru → încetinești sau pierzi.
+        </p>
+      </div>
+
       <div className="bg-slate-800/50 rounded-lg p-3 mb-4 grid grid-cols-3 gap-2 text-xs">
         <div>
           <p className="text-slate-400">Media Istorică/săpt</p>
-          <p className="text-slate-300 font-bold">{formatEUR(overallAvg)}</p>
+          <p className="text-white font-bold">{formatEUR(overallAvg)}</p>
         </div>
         <div>
           <p className="text-slate-400">Medie 4 săpt (recent)</p>
