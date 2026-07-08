@@ -57,7 +57,7 @@ const InvestmentForecastChart: React.FC<Props> = ({ investmentData }) => {
   }, [investmentData]);
 
   const [startAmount, setStartAmount] = useState<number>(defaultStart);
-  const [monthlyContrib, setMonthlyContrib] = useState<number>(1320);
+  const [monthlyContrib, setMonthlyContrib] = useState<number>(2000);
   const [years, setYears] = useState<number>(20);
   const [customRate, setCustomRate] = useState<number>(7);
 

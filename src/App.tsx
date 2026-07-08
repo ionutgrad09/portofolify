@@ -59,6 +59,7 @@ import PnLHistogram from "./components/PnLHistogram";
 import MonthlyPnLChart from "./components/MonthlyPnLChart";
 import MomentumChart from "./components/MomentumChart";
 import EmergencyFundCard from "./components/EmergencyFundCard";
+import FIRECalculator from "./components/FIRECalculator";
 
 
 const buildMergedData = (historyEntries: WealthData[], assetEntries: AssetData[]): MergedData[] => {
@@ -541,6 +542,7 @@ const WealthTracker: React.FC = () => {
             </div>
             <MilestoneTimeline mergedData={projectionData}/>
             <ScenarioProjectionChart mergedData={projectionData}/>
+            <FIRECalculator mergedData={projectionData}/>
           </div>
         )}
 

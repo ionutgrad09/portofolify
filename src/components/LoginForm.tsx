@@ -10,7 +10,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSubmit }) => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 flex items-center justify-center p-4">
       <div className="bg-slate-900 p-8 rounded-2xl shadow-2xl w-full max-w-sm">
-        <h2 className="text-2xl font-bold text-white mb-4 text-center">Introduce PIN-ul</h2>
+        <h2 className="text-2xl font-bold text-white mb-4 text-center">PIN</h2>
         <form onSubmit={onSubmit} className="flex flex-col gap-4">
           <input
             name="password"

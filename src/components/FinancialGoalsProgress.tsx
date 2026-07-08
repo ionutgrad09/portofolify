@@ -1,6 +1,6 @@
 import React from 'react';
 import { Target } from 'lucide-react';
-import { formatEUR } from '../utils/utils';
+import { formatEUR, oneTimeInflowInWindow } from '../utils/utils';
 import type { MergedData } from '../types';
 
 interface FinancialGoalsProgressProps {
@@ -39,7 +39,10 @@ const FinancialGoalsProgress: React.FC<FinancialGoalsProgressProps> = ({ mergedD
     (endDate.getMonth() - startDate.getMonth()) +
     (endDate.getDate() - startDate.getDate()) / 30;
 
-  const totalGrowth = calcData[calcData.length - 1].netWorth - calcData[0].netWorth;
+  // The 37k June 2026 inflow stays in all totals, but is a one-time deposit, so we
+  // strip it from growth deltas to keep the recurring earning rate realistic.
+  const totalGrowth =
+    calcData[calcData.length - 1].netWorth - calcData[0].netWorth - oneTimeInflowInWindow(startDate, endDate);
   const averageMonthlyEarning = monthsElapsed > 0 ? totalGrowth / monthsElapsed : 0;
 
   const computeTrend = (months: number): number => {
@@ -51,7 +54,9 @@ const FinancialGoalsProgress: React.FC<FinancialGoalsProgressProps> = ({ mergedD
     const end   = parseDDMMYYYY(entries[entries.length - 1].date);
     const elapsed = (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24 * 30.44);
     if (elapsed < 0.5) return averageMonthlyEarning;
-    return (entries[entries.length - 1].netWorth - entries[0].netWorth) / elapsed;
+    const growth =
+      entries[entries.length - 1].netWorth - entries[0].netWorth - oneTimeInflowInWindow(start, end);
+    return growth / elapsed;
   };
 
   const recentMonthlyEarning  = computeTrend(3);

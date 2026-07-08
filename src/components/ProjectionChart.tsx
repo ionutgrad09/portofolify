@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Target } from 'lucide-react';
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { oneTimeInflowInWindow } from '../utils/utils';
 
 // Mock types for demonstration
 type MergedData = {
@@ -49,7 +50,7 @@ const RETURN_KEY  = 'portofolify_annual_return';
 
 const ProjectionChart: React.FC<{ mergedData: MergedData[] }> = ({ mergedData }) => {
   const [monthlyContrib, setMonthlyContrib] = useState<number>(() =>
-    Number(localStorage.getItem(CONTRIB_KEY) || '1500'));
+    Number(localStorage.getItem(CONTRIB_KEY) || '2000'));
   const [annualReturn, setAnnualReturn] = useState<number>(() =>
     Number(localStorage.getItem(RETURN_KEY) || '7.5'));
 
@@ -69,14 +70,18 @@ const ProjectionChart: React.FC<{ mergedData: MergedData[] }> = ({ mergedData })
     .at(-1)!;
   const currentWealth = lastEntry.netWorth;
 
-  // Compute week-over-week deltas, normalized to 7 days, tagged with year
+  // Compute week-over-week deltas, normalized to 7 days, tagged with year.
+  // The 37k June 2026 inflow stays in all totals, but is a one-time deposit, so we
+  // strip it from the deltas to keep the projected weekly trend realistic.
   const weeklyDeltas: { week: number; delta: number }[] = [];
   for (let i = 1; i < sortedData.length; i++) {
     const prevDate = parseDDMMYYYY(sortedData[i - 1].date);
     const currDate = parseDDMMYYYY(sortedData[i].date);
     const days = (currDate.getTime() - prevDate.getTime()) / (24 * 60 * 60 * 1000);
     if (days <= 0) continue;
-    const normalizedDelta = ((sortedData[i].netWorth - sortedData[i - 1].netWorth) / days) * 7;
+    const recurringGrowth =
+      sortedData[i].netWorth - sortedData[i - 1].netWorth - oneTimeInflowInWindow(prevDate, currDate);
+    const normalizedDelta = (recurringGrowth / days) * 7;
     weeklyDeltas.push({ week: weekOfYear(currDate), delta: normalizedDelta });
   }
 
@@ -88,7 +93,7 @@ const ProjectionChart: React.FC<{ mergedData: MergedData[] }> = ({ mergedData })
   const endMs   = parseDDMMYYYY(lastEntry.date).getTime();
   const totalWeeks = (endMs - startMs) / (7 * 24 * 60 * 60 * 1000);
   const overallAvgWeekly = totalWeeks > 0
-    ? (lastEntry.netWorth - sortedData[0].netWorth) / totalWeeks
+    ? (lastEntry.netWorth - sortedData[0].netWorth - oneTimeInflowInWindow(parseDDMMYYYY(sortedData[0].date), parseDDMMYYYY(lastEntry.date))) / totalWeeks
     : avg(allDeltas);
 
   const variance = allDeltas.reduce((sum, d) => sum + Math.pow(d - overallAvgWeekly, 2), 0) / allDeltas.length;

@@ -26,7 +26,7 @@ const RETURN_KEY  = 'portofolify_annual_return';
 
 const ScenarioProjectionChart: React.FC<{ mergedData: MergedData[] }> = ({ mergedData }) => {
   const [monthlyContrib, setMonthlyContrib] = useState<number>(() =>
-    Number(localStorage.getItem(CONTRIB_KEY) || '1500'));
+    Number(localStorage.getItem(CONTRIB_KEY) || '2000'));
   const [annualReturn, setAnnualReturn] = useState<number>(() =>
     Number(localStorage.getItem(RETURN_KEY) || '7.5'));
 
