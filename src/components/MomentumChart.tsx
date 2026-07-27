@@ -136,7 +136,7 @@ const MomentumChart: React.FC<{ mergedData: MergedData[] }> = ({ mergedData }) =
             y={overallAvg}
             stroke="#475569"
             strokeDasharray="4 2"
-            label={{ value: 'Medie hist.', position: 'insideTopRight', fill: '#475569', fontSize: 9 }}
+            label={{ value: 'Medie hist.', position: 'insideTopRight', fill: '#94a3b8', fontSize: 9 }}
           />
           <Line
             type="monotone"

@@ -110,13 +110,17 @@ const PerformanceStatsBar: React.FC<Props> = ({ mergedData }) => {
       <p className="text-xs text-slate-500 uppercase tracking-widest mb-3 font-semibold">Statistici Performanță</p>
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
         {stats.map((s, i) => (
-          <div key={i} className={`flex flex-col gap-1 ${i === 4 ? 'col-span-2 sm:col-span-1' : ''}`}>
+      <div key={i} title={(s as any).hoverTitle} className={`flex flex-col gap-1 cursor-default ${i === 4 ? 'col-span-2 sm:col-span-1' : ''}`}>
             <div className="flex items-center gap-1.5 text-slate-400 text-xs">
               {s.icon}
               <span>{s.label}</span>
             </div>
             <p className={`text-lg sm:text-xl font-bold ${s.color}`}>{s.value}</p>
-            {s.sub && <p className="text-xs text-slate-500">{s.sub}</p>}
+            {s.sub && (
+              <p className={`text-xs font-medium ${(s as any).hoverTitle ? (i === 3 ? 'text-emerald-500' : 'text-red-500') : 'text-slate-500'}`}>
+                {s.sub}
+              </p>
+            )}
             <p className="text-xs text-slate-600 leading-snug mt-0.5">{s.explanation}</p>
           </div>
         ))}

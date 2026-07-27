@@ -50,6 +50,7 @@ const PortfolioDriftChart: React.FC<{ investmentData: InvestmentData[] }> = ({ i
             contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px' }}
             labelStyle={{ color: '#94a3b8', fontSize: 11, marginBottom: 4 }}
             itemStyle={{ color: '#e2e8f0' }}
+            cursor={{ fill: 'rgba(148, 163, 184, 0.1)' }}
             formatter={(value: number, _name: string, props: any) => {
               const d = props.payload;
               return [`${value > 0 ? '+' : ''}${value}% (Target: ${d.target}% → Actual: ${d.actual}%)`, 'Deviere'];

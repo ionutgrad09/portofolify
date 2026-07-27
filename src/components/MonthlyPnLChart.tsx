@@ -22,23 +22,29 @@ const MonthlyPnLChart: React.FC<Props> = ({ mergedData }) => {
     (a, b) => parseDDMMYYYY(a.date).getTime() - parseDDMMYYYY(b.date).getTime()
   );
 
-  // Group by month — last entry per month
-  const monthMap = new Map<string, { label: string; lastValue: number }>();
+  // Group by calendar month-year — last entry per month
+  const monthMap = new Map<string, { monthIndex: number; lastValue: number }>();
   sorted.forEach(e => {
     const d = parseDDMMYYYY(e.date);
     const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-    const label = `${MONTH_NAMES[d.getMonth()]} ${d.getFullYear()}`;
-    monthMap.set(key, { label, lastValue: e.netWorth });
+    monthMap.set(key, { monthIndex: d.getMonth(), lastValue: e.netWorth });
   });
 
   const months = Array.from(monthMap.entries())
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([, v]) => v);
 
-  const chartData = months.slice(1).map((m, i) => ({
-    month: m.label,
-    pnl: parseFloat((m.lastValue - months[i].lastValue).toFixed(0)),
-  }));
+  // Aggregate month-over-month P&L into calendar months (all Julys summed, etc.)
+  const pnlByMonth = new Array<number>(12).fill(0);
+  const hasData = new Array<boolean>(12).fill(false);
+  months.slice(1).forEach((m, i) => {
+    pnlByMonth[m.monthIndex] += m.lastValue - months[i].lastValue;
+    hasData[m.monthIndex] = true;
+  });
+
+  const chartData = MONTH_NAMES
+    .map((label, idx) => ({ month: label, pnl: parseFloat(pnlByMonth[idx].toFixed(0)), monthIndex: idx }))
+    .filter(d => hasData[d.monthIndex]);
 
   if (chartData.length === 0) return null;
 
@@ -83,6 +89,9 @@ const MonthlyPnLChart: React.FC<Props> = ({ mergedData }) => {
           <YAxis stroke="#94a3b8" tickFormatter={(v: number) => `€${(v / 1000).toFixed(0)}k`} />
           <Tooltip
             contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px', color: 'white' }}
+            labelStyle={{ color: '#e2e8f0' }}
+            itemStyle={{ color: '#e2e8f0' }}
+            cursor={{ fill: 'rgba(148, 163, 184, 0.1)' }}
             formatter={(v: any) => [formatEUR(Number(v)), 'P&L']}
           />
           <ReferenceLine y={0} stroke="#64748b" />

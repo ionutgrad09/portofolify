@@ -93,6 +93,9 @@ const PnLHistogram: React.FC<Props> = ({ mergedData }) => {
           <YAxis stroke="#94a3b8" allowDecimals={false} />
           <Tooltip
             contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px', color: 'white' }}
+            labelStyle={{ color: '#e2e8f0' }}
+            itemStyle={{ color: '#e2e8f0' }}
+            cursor={{ fill: 'rgba(148, 163, 184, 0.1)' }}
             formatter={(v: any, _: any, props: any) => [
               `${v} săptămâni`, `${formatEUR(props.payload.range)} – ${formatEUR(props.payload.range + BUCKET)}`
             ]}

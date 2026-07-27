@@ -67,7 +67,7 @@ const AssetYoYChart: React.FC<Props> = ({ assetsData }) => {
           <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
           <XAxis dataKey="name" stroke="#94a3b8" tick={{ fontSize: 10, fill: '#e2e8f0' }} />
           <YAxis stroke="#94a3b8" tick={{ fill: '#e2e8f0' }} tickFormatter={(v: number) => `${v}%`} />
-          <Tooltip content={<CustomTooltip />} />
+          <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(148, 163, 184, 0.1)' }} />
           <ReferenceLine y={0} stroke="#64748b" />
           <Bar dataKey="yoy" name="YoY %" radius={[4, 4, 0, 0]}>
             {chartData.map((entry, i) => (

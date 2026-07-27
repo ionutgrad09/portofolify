@@ -35,7 +35,7 @@ const LiquidityChart: React.FC<{ mergedData: MergedData[] }> = ({ mergedData }) 
     <div className="bg-slate-900/50 backdrop-blur-xl rounded-2xl p-4 sm:p-6 shadow-2xl border border-slate-800">
       <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
         <Droplets className="text-cyan-400" size={24}/>
-        Lichiditate vs Active Fizice
+        Lichiditate vs Active nelichide
       </h2>
 
       <div className="bg-slate-800/50 rounded-lg p-3 mb-4 grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
@@ -44,7 +44,7 @@ const LiquidityChart: React.FC<{ mergedData: MergedData[] }> = ({ mergedData }) 
           <p className="text-cyan-400 font-bold">{formatEUR(latest.liquid)} <span className="text-slate-400 font-normal">({liquidPct}%)</span></p>
         </div>
         <div className="flex flex-col gap-0.5">
-          <p className="text-slate-400">Nelichide (Active Fizice)</p>
+          <p className="text-slate-400">Active nelichide</p>
           <p className="text-amber-400 font-bold">{formatEUR(latest.illiquid)} <span className="text-slate-400 font-normal">({illiquidPct}%)</span></p>
         </div>
       </div>
@@ -82,14 +82,14 @@ const LiquidityChart: React.FC<{ mergedData: MergedData[] }> = ({ mergedData }) 
             labelStyle={{ color: '#94a3b8', fontSize: 11, marginBottom: 4 }}
             itemStyle={{ color: '#e2e8f0' }}
             formatter={(value: number, name: string) => {
-              const labels: Record<string, string> = { liquid: 'Lichide', illiquid: 'Active Fizice' };
+              const labels: Record<string, string> = { liquid: 'Lichide', illiquid: 'Active nelichide' };
               return [formatEUR(value), labels[name] ?? name];
             }}
           />
           <Legend
             wrapperStyle={{ paddingTop: 8, fontSize: 11 }}
             formatter={(value: string) => {
-              const labels: Record<string, string> = { liquid: 'Lichide', illiquid: 'Active Fizice' };
+              const labels: Record<string, string> = { liquid: 'Lichide', illiquid: 'Active nelichide' };
               return <span style={{ color: '#94a3b8' }}>{labels[value] ?? value}</span>;
             }}
           />

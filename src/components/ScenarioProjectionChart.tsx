@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Layers } from 'lucide-react';
 import { Area, AreaChart, CartesianGrid, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import type { MergedData } from '../types';
+import { oneTimeInflowInWindow } from '../utils/utils';
 
 const parseDDMMYYYY = (dateStr: string): Date => {
   const [day, month, year] = dateStr.split('.').map(Number);
@@ -11,27 +12,37 @@ const parseDDMMYYYY = (dateStr: string): Date => {
 const formatEUR = (value: number): string =>
   new Intl.NumberFormat('ro-RO', { style: 'currency', currency: 'EUR', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(value);
 
+const formatEURShort = (value: number): string => {
+  if (Math.abs(value) >= 1_000_000) return `€${(value / 1_000_000).toFixed(2).replace(/\.?0+$/, '')}M`;
+  if (Math.abs(value) >= 1_000) return `€${(value / 1_000).toFixed(0)}k`;
+  return `€${Math.round(value)}`;
+};
+
 const GOALS = [
   { label: '250k €', value: 250000 },
   { label: '500k €', value: 500000 },
   { label: '750k €', value: 750000 },
   { label: '1M €', value: 1000000 },
+  { label: '2M €', value: 2000000 },
 ];
 
-const PROJECTION_YEARS = 5;
 const MONTH_NAMES = ['Ian', 'Feb', 'Mar', 'Apr', 'Mai', 'Iun', 'Iul', 'Aug', 'Sep', 'Oct', 'Noi', 'Dec'];
 
-const CONTRIB_KEY = 'portofolify_monthly_contrib';
-const RETURN_KEY  = 'portofolify_annual_return';
+const CONTRIB_KEY   = 'portofolify_monthly_contrib';
+const RETURN_KEY    = 'portofolify_annual_return';
+const PROJ_YEARS_KEY = 'portofolify_scenario_years';
 
 const ScenarioProjectionChart: React.FC<{ mergedData: MergedData[] }> = ({ mergedData }) => {
   const [monthlyContrib, setMonthlyContrib] = useState<number>(() =>
     Number(localStorage.getItem(CONTRIB_KEY) || '2000'));
   const [annualReturn, setAnnualReturn] = useState<number>(() =>
     Number(localStorage.getItem(RETURN_KEY) || '7.5'));
+  const [projYears, setProjYears] = useState<number>(() =>
+    Number(localStorage.getItem(PROJ_YEARS_KEY) || '5'));
 
   const handleContrib = (v: number) => { setMonthlyContrib(v); localStorage.setItem(CONTRIB_KEY, String(v)); };
   const handleReturn  = (v: number) => { setAnnualReturn(v);   localStorage.setItem(RETURN_KEY,  String(v)); };
+  const handleYears   = (v: number) => { setProjYears(v);      localStorage.setItem(PROJ_YEARS_KEY, String(v)); };
 
   if (!mergedData || mergedData.length < 2) return null;
 
@@ -42,25 +53,27 @@ const ScenarioProjectionChart: React.FC<{ mergedData: MergedData[] }> = ({ merge
   const lastEntry = sorted[sorted.length - 1];
   const currentWealth = lastEntry.netWorth;
 
-  // Exclude adjustment date from rate calculations (same logic as FinancialGoalsProgress)
-  const calcData = sorted;
-  if (calcData.length < 2) return null;
+  // ── Historical monthly avg — strip lump sums same as ProjectionChart ──
+  const calcStart = sorted[0];
+  const calcEnd   = sorted[sorted.length - 1];
+  const startDate = parseDDMMYYYY(calcStart.date);
+  const endDate   = parseDDMMYYYY(calcEnd.date);
 
-  const calcStart = calcData[0];
-  const calcEnd   = calcData[calcData.length - 1];
-
-  const totalMs = parseDDMMYYYY(calcEnd.date).getTime() - parseDDMMYYYY(calcStart.date).getTime();
+  const totalMs = endDate.getTime() - startDate.getTime();
   const totalMonths = totalMs / (1000 * 60 * 60 * 24 * 30.44);
   if (totalMonths <= 0) return null;
 
-  const historicalMonthlyAvg = (calcEnd.netWorth - calcStart.netWorth) / totalMonths;
+  // Strip one-time inflows from the net growth before computing the trend
+  const lumpSumTotal = oneTimeInflowInWindow(startDate, endDate);
+  const recurringGrowth = calcEnd.netWorth - calcStart.netWorth - lumpSumTotal;
+  const historicalMonthlyAvg = recurringGrowth / totalMonths;
 
   const baseMonthlyAvg = historicalMonthlyAvg;
   const optimisticMonthly = baseMonthlyAvg * 1.25;
   const pessimisticMonthly = baseMonthlyAvg * 0.75;
 
-  const MONTHS = PROJECTION_YEARS * 12;
-  const startDate = parseDDMMYYYY(lastEntry.date);
+  const MONTHS = projYears * 12;
+  const projStartDate = parseDDMMYYYY(lastEntry.date);
 
   const chartData: Array<{ label: string; base: number; optimistic: number; pessimistic: number }> = [];
   let base = currentWealth;
@@ -68,21 +81,27 @@ const ScenarioProjectionChart: React.FC<{ mergedData: MergedData[] }> = ({ merge
   let pessimistic = currentWealth;
   let investmentBalance = lastEntry.investments;
 
+  // Year-markers for X-axis labels
+  const yearMarkers = new Set<number>();
+  for (let y = 1; y <= projYears; y++) yearMarkers.add(y * 12);
+
   for (let m = 1; m <= MONTHS; m++) {
-    const d = new Date(startDate);
+    const d = new Date(projStartDate);
     d.setMonth(d.getMonth() + m);
-    const label = [12, 24, 36, 48, 60].includes(m)
+    const label = yearMarkers.has(m)
       ? `${MONTH_NAMES[d.getMonth()]} ${d.getFullYear()}`
       : '';
 
-    // Compound investment return on growing balance
     const monthlyReturn = investmentBalance * (annualReturn / 100) / 12;
+    // Contribution grows the investment balance (for compounding) but is NOT
+    // added as a direct flat boost to the projection — only the investment
+    // return from the growing balance boosts the projected net worth.
     investmentBalance += monthlyContrib + monthlyReturn;
-    const boost = monthlyContrib + monthlyReturn;
+    const boost = monthlyReturn; // only investment return, not raw contribution
 
-    base       += baseMonthlyAvg       + boost;
-    optimistic += optimisticMonthly    + boost;
-    pessimistic += pessimisticMonthly  + boost;
+    base       += baseMonthlyAvg      + boost;
+    optimistic += optimisticMonthly   + boost;
+    pessimistic += pessimisticMonthly + boost;
     chartData.push({ label, base, optimistic, pessimistic });
   }
 
@@ -90,17 +109,28 @@ const ScenarioProjectionChart: React.FC<{ mergedData: MergedData[] }> = ({ merge
     g => g.value > currentWealth && g.value < chartData[chartData.length - 1].optimistic * 1.1
   );
 
+  // Dynamic milestone summary cards
+  const summaryPoints: Array<{ label: string; m: number }> = [];
+  if (projYears >= 1) summaryPoints.push({ label: 'La 1 an', m: 12 });
+  if (projYears >= 2) summaryPoints.push({ label: `La ${Math.floor(projYears / 2)} ani`, m: Math.floor(projYears / 2) * 12 });
+  summaryPoints.push({ label: `La ${projYears} ani`, m: MONTHS });
+
+  // Deduplicate
+  const seen = new Set<number>();
+  const uniqueSummary = summaryPoints.filter(s => { if (seen.has(s.m)) return false; seen.add(s.m); return true; });
+
   return (
     <div className="bg-slate-900/50 backdrop-blur-xl rounded-2xl p-6 shadow-2xl border border-slate-800">
       <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
         <Layers className="text-indigo-400" size={24}/>
-        Proiecție Scenarii 5 Ani
+        Proiecție Scenarii {projYears} {projYears === 1 ? 'An' : 'Ani'}
       </h2>
 
       <div className="bg-slate-800/50 rounded-lg p-3 mb-4 grid grid-cols-3 gap-2 text-xs">
         <div>
           <p className="text-slate-400">Medie Istorică/lună</p>
           <p className="text-white font-bold">{formatEUR(historicalMonthlyAvg)}</p>
+          <p className="text-slate-600 text-[9px]">fără intrări unice</p>
         </div>
         <div>
           <p className="text-slate-400">Baza proiecție/lună</p>
@@ -114,15 +144,42 @@ const ScenarioProjectionChart: React.FC<{ mergedData: MergedData[] }> = ({ merge
         </div>
       </div>
 
-      {/* Boost breakdown */}
-      <div className="bg-slate-800/30 border border-slate-700/40 rounded-lg p-3 mb-4 grid grid-cols-2 gap-2 text-xs">
-        <div>
-          <p className="text-slate-500">+ Contribuție lunară netă</p>
-          <p className="text-purple-400 font-bold">{formatEUR(monthlyContrib)}/lună</p>
+      <div className="bg-slate-800/30 border border-slate-700/40 rounded-lg p-3 mb-4 text-xs">
+        <div className="grid grid-cols-2 gap-2 mb-3">
+          <div>
+            <p className="text-slate-500">+ Contribuție lunară netă</p>
+            <p className="text-purple-400 font-bold">{formatEUR(monthlyContrib)}/lună</p>
+            <p className="text-slate-600 text-[9px]">intră în investiții → compoundat</p>
+          </div>
+          <div>
+            <p className="text-slate-500">+ Randament investiții ({annualReturn}%/an)</p>
+            <p className="text-amber-400 font-bold">{formatEUR(lastEntry.investments * (annualReturn / 100) / 12)}/lună inițial (crește)</p>
+          </div>
         </div>
-        <div>
-          <p className="text-slate-500">+ Randament investiții ({annualReturn}%/an)</p>
-          <p className="text-amber-400 font-bold">{formatEUR(lastEntry.investments * (annualReturn / 100) / 12)}/lună inițial (crește)</p>
+        {/* Sliders for contribution + return rate inline */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-slate-700/40">
+          <div>
+            <label className="text-[10px] text-slate-400 mb-1 block">Contribuție lunară netă (EUR)</label>
+            <div className="flex gap-2 items-center">
+              <input type="number" min={0} step={100} value={monthlyContrib}
+                onChange={e => handleContrib(Number(e.target.value))}
+                className="bg-slate-800 border border-slate-600 text-white rounded-lg px-2 py-1 text-xs focus:outline-none focus:border-blue-500 w-24" />
+              <input type="range" min={0} max={10000} step={100} value={monthlyContrib}
+                onChange={e => handleContrib(Number(e.target.value))}
+                className="flex-1 accent-purple-400" />
+            </div>
+          </div>
+          <div>
+            <label className="text-[10px] text-slate-400 mb-1 block">Randament anual investiții (%)</label>
+            <div className="flex gap-2 items-center">
+              <input type="number" min={0} max={30} step={0.5} value={annualReturn}
+                onChange={e => handleReturn(Number(e.target.value))}
+                className="bg-slate-800 border border-slate-600 text-white rounded-lg px-2 py-1 text-xs focus:outline-none focus:border-blue-500 w-24" />
+              <input type="range" min={0} max={20} step={0.5} value={annualReturn}
+                onChange={e => handleReturn(Number(e.target.value))}
+                className="flex-1 accent-amber-400" />
+            </div>
+          </div>
         </div>
       </div>
 
@@ -153,7 +210,7 @@ const ScenarioProjectionChart: React.FC<{ mergedData: MergedData[] }> = ({ merge
           <YAxis
             stroke="#94a3b8"
             tick={{ fill: '#94a3b8' }}
-            tickFormatter={(val: number) => `€${(val / 1000).toFixed(0)}k`}
+            tickFormatter={formatEURShort}
           />
           <Tooltip
             contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px' }}
@@ -170,7 +227,7 @@ const ScenarioProjectionChart: React.FC<{ mergedData: MergedData[] }> = ({ merge
               y={g.value}
               stroke="#475569"
               strokeDasharray="4 2"
-              label={{ value: g.label, position: 'insideTopRight', fill: '#64748b', fontSize: 9 }}
+              label={{ value: g.label, position: 'insideTopRight', fill: '#94a3b8', fontSize: 9 }}
             />
           ))}
           <Area type="monotone" dataKey="pessimistic" stroke="#ef4444" strokeWidth={1.5} fill="url(#scenarioPes)" strokeDasharray="4 2" name="pessimistic"/>
@@ -180,8 +237,9 @@ const ScenarioProjectionChart: React.FC<{ mergedData: MergedData[] }> = ({ merge
       </ResponsiveContainer>
 
       <div className="mt-4 grid grid-cols-3 gap-2 text-xs">
-        {[{ label: 'La 1 an', m: 12 }, { label: 'La 3 ani', m: 36 }, { label: 'La 5 ani', m: 60 }].map(({ label, m }) => {
-          const p = chartData[m - 1];
+        {uniqueSummary.map(({ label, m }) => {
+          const p = chartData[Math.min(m, chartData.length) - 1];
+          if (!p) return null;
           return (
             <div key={m} className="bg-slate-800/50 rounded-lg p-2 space-y-1">
               <p className="text-slate-400 font-medium">{label}</p>
@@ -196,35 +254,24 @@ const ScenarioProjectionChart: React.FC<{ mergedData: MergedData[] }> = ({ merge
       {/* Settings */}
       <div className="mt-5 pt-4 border-t border-slate-700/50">
         <p className="text-xs text-slate-400 mb-3 font-medium">Parametri proiecție</p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="max-w-xs">
           <div>
-            <label className="text-xs text-slate-400 mb-1 block">Contribuție lunară netă (EUR)</label>
-            <div className="flex flex-col gap-1.5">
-              <input type="number" min={0} step={100} value={monthlyContrib}
-                onChange={e => handleContrib(Number(e.target.value))}
-                className="bg-slate-800 border border-slate-600 text-white rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-blue-500 w-full" />
-              <input type="range" min={0} max={10000} step={100} value={monthlyContrib}
-                onChange={e => handleContrib(Number(e.target.value))}
-                className="w-full accent-purple-400" />
-            </div>
-          </div>
-          <div>
-            <label className="text-xs text-slate-400 mb-1 block">Randament anual investiții (%)</label>
-            <div className="flex flex-col gap-1.5">
-              <input type="number" min={0} max={30} step={0.5} value={annualReturn}
-                onChange={e => handleReturn(Number(e.target.value))}
-                className="bg-slate-800 border border-slate-600 text-white rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-blue-500 w-full" />
-              <input type="range" min={0} max={20} step={0.5} value={annualReturn}
-                onChange={e => handleReturn(Number(e.target.value))}
-                className="w-full accent-amber-400" />
+            <label className="text-xs text-slate-400 mb-1 block">Ani proiecție</label>
+            <div className="flex gap-2 items-center">
+              <input type="number" min={1} max={30} step={1} value={projYears}
+                onChange={e => handleYears(Math.max(1, Math.min(30, Number(e.target.value))))}
+                className="bg-slate-800 border border-slate-600 text-white rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-blue-500 w-24" />
+              <input type="range" min={1} max={30} step={1} value={projYears}
+                onChange={e => handleYears(Number(e.target.value))}
+                className="flex-1 accent-indigo-400" />
             </div>
           </div>
         </div>
-        <p className="text-[10px] text-slate-600 mt-2">Contribuția și randamentul se adaugă peste trendul istoric și cresc prin efect de dobândă compusă. Setările sunt salvate automat și sincronizate cu Proiecția 52 Săptămâni.</p>
+        <p className="text-[10px] text-slate-600 mt-2">Contribuția lunară intră în balanța de investiții și se compounduiește la randamentul setat. Setările sunt salvate automat.</p>
       </div>
 
       <p className="text-[10px] text-slate-600 mt-3">
-        Baza = media istorică lunară + contribuții + randament compus. Scenariile ±25% se aplică doar pe componenta istorică.
+        Baza = media istorică lunară (fără lump sum) + contribuții + randament compus. Scenariile ±25% se aplică doar pe componenta istorică.
       </p>
     </div>
   );

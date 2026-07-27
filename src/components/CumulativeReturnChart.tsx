@@ -97,7 +97,7 @@ const CumulativeReturnChart: React.FC<{ mergedData: MergedData[] }> = ({ mergedD
               y={m}
               stroke="#334155"
               strokeDasharray="4 2"
-              label={{value: `+${m}%`, position: 'insideTopRight', fill: '#475569', fontSize: 9}}
+              label={{value: `+${m}%`, position: 'insideTopRight', fill: '#94a3b8', fontSize: 9}}
             />
           ))}
           <Area

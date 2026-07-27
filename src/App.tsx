@@ -18,7 +18,7 @@ import {
 } from 'recharts';
 import {
   TrendingUp, DollarSign, PiggyBank, Banknote, RefreshCcw,
-  Building, Activity
+  Landmark, Activity
 } from 'lucide-react';
 import HistoryTable from "./components/HistoryTable";
 import {
@@ -331,7 +331,7 @@ const WealthTracker: React.FC = () => {
     { id: 'proiectii',   label: 'Proiecții' },
     { id: 'investitii',  label: 'Investiții' },
     ...(cashSplitData.length > 0  ? [{ id: 'cash',    label: 'Cash' }]   : []),
-    ...(assetsData.length > 0     ? [{ id: 'active',  label: 'Active' }] : []),
+    ...(assetsData.length > 0     ? [{ id: 'active',  label: 'Active nelichide' }] : []),
     { id: 'istoric',     label: 'Istoric' },
   ];
 
@@ -424,7 +424,7 @@ const WealthTracker: React.FC = () => {
                   <BarChart data={assetAllocationData}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#334155"/>
                     <XAxis dataKey="date" stroke="#94a3b8" tick={{fontSize: 9}} angle={-45} textAnchor="end" height={50}/>
-                    <YAxis stroke="#94a3b8" tickFormatter={(val: number) => `${val}%`} domain={[0, 100]}/>
+                    <YAxis stroke="#94a3b8" tickFormatter={(val: number) => `${Math.round(val)}%`} domain={[0, 100]} ticks={[0, 25, 50, 75, 100]}/>
                     <Tooltip
                       content={({active, payload, label}) => {
                         if (active && payload && payload.length) {
@@ -443,17 +443,18 @@ const WealthTracker: React.FC = () => {
                         }
                         return null;
                       }}
+                      cursor={{fill: 'rgba(148, 163, 184, 0.1)'}}
                     />
                     <Legend wrapperStyle={{paddingTop: 8, fontSize: 11}}/>
                     <Bar dataKey="investments" stackId="a" fill="#a855f7" name="Investiții %"/>
-                    <Bar dataKey="assets" stackId="a" fill="#f59e0b" name="Active %"/>
+                    <Bar dataKey="assets" stackId="a" fill="#f59e0b" name="Active nelichide %"/>
                     <Bar dataKey="cash" stackId="a" fill="#22c55e" name="Cash %"/>
                   </BarChart>
                 </ResponsiveContainer>
                 <p className="text-slate-400 text-xs mt-2 text-center">
                   Investiții <b className="text-purple-400">{assetAllocationData[assetAllocationData.length - 1]?.investments ?? 0}%</b>
                   {' / '}Cash <b className="text-green-400">{assetAllocationData[assetAllocationData.length - 1]?.cash ?? 0}%</b>
-                  {' / '}Active <b className="text-amber-400">{assetAllocationData[assetAllocationData.length - 1]?.assets ?? 0}%</b>
+                  {' / '}Active nelichide <b className="text-amber-400">{assetAllocationData[assetAllocationData.length - 1]?.assets ?? 0}%</b>
                 </p>
               </div>
             </div>
@@ -462,7 +463,7 @@ const WealthTracker: React.FC = () => {
             <div className="bg-slate-900/50 backdrop-blur-xl rounded-2xl p-6 shadow-2xl border border-slate-800">
               <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
                 <DollarSign className="text-green-400" size={24}/>
-                Evoluția Activelor (Investiții, Active, Cash)
+                Evoluția Activelor (Investiții, Active nelichide, Cash)
               </h2>
               <ResponsiveContainer width="100%" height={280}>
                 <AreaChart data={chartData}>
@@ -485,7 +486,7 @@ const WealthTracker: React.FC = () => {
                   <YAxis stroke="#94a3b8" tickFormatter={(val: number) => `€${(val/1000).toFixed(0)}k`}/>
                   <Tooltip content={<CustomTooltip/>}/>
                   <Area type="monotone" dataKey="investments" stackId="a" stroke="#a855f7" fillOpacity={1} fill="url(#colorInvestments)" name="Investiții"/>
-                  <Area type="monotone" dataKey="assetsTotal" stackId="a" stroke="#f59e0b" fillOpacity={1} fill="url(#colorAssets2)" name="Active Fizice"/>
+                  <Area type="monotone" dataKey="assetsTotal" stackId="a" stroke="#f59e0b" fillOpacity={1} fill="url(#colorAssets2)" name="Active nelichide"/>
                   <Area type="monotone" dataKey="cash" stackId="a" stroke="#22c55e" fillOpacity={1} fill="url(#colorCash)" name="Cash"/>
                   <Legend wrapperStyle={{paddingTop: 8}}/>
                 </AreaChart>
@@ -504,10 +505,10 @@ const WealthTracker: React.FC = () => {
         {activeTab === 'analiza' && (
           <div className="space-y-6">
             <PerformanceStatsBar mergedData={chartData}/>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <DrawdownChart mergedData={chartData}/>
-              <AnnualPerformanceChart mergedData={chartData}/>
-            </div>
+            <DrawdownChart mergedData={chartData}/>
+            <AnnualPerformanceChart mergedData={chartData}/>
+            <MonthlyPnLChart mergedData={chartData}/>
+            <PnLHistogram mergedData={chartData}/>
             <Rolling12MonthChart mergedData={chartData}/>
             <MomentumChart mergedData={chartData}/>
             <MonthlyPerformanceHeatmap mergedData={chartData}/>
@@ -521,7 +522,7 @@ const WealthTracker: React.FC = () => {
                   <CartesianGrid stroke="#334155" strokeDasharray="3 3"/>
                   <XAxis dataKey="date" stroke="#94a3b8" tick={{fontSize: 9}} angle={-45} textAnchor="end" height={50}/>
                   <YAxis stroke="#94a3b8" tick={{fill: '#94a3b8'}}/>
-                  <Tooltip content={<CustomTooltip ron/>} cursor={{fill: 'rgba(255,255,255,0.1)'}}/>
+                  <Tooltip content={<CustomTooltip ron/>} cursor={{fill: 'rgba(148, 163, 184, 0.1)'}}/>
                   <Bar dataKey="gainLoss" name="Profit">
                     {historyChartData.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={entry.gainLoss >= 0 ? '#22c55e' : '#ef4444'}/>
@@ -612,8 +613,8 @@ const WealthTracker: React.FC = () => {
         {activeTab === 'active' && assetsChartData.length > 0 && (
           <div className="space-y-6">
             <div className="flex items-center gap-2 mb-2">
-              <Building className="text-orange-400" size={28}/>
-              <h2 className="text-2xl font-bold text-white">Active Personale — Total: {formatEUR(totalAssetsEUR)}</h2>
+              <Landmark className="text-orange-400" size={28}/>
+              <h2 className="text-2xl font-bold text-white">Active nelichide — Total: {formatEUR(totalAssetsEUR)}</h2>
             </div>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <div className="bg-slate-900/50 backdrop-blur-xl rounded-2xl p-6 shadow-2xl border border-slate-800">
@@ -691,10 +692,6 @@ const WealthTracker: React.FC = () => {
         {/* ── ISTORIC ──────────────────────────────────────────── */}
         {activeTab === 'istoric' && (
           <div className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <PnLHistogram mergedData={chartData}/>
-              <MonthlyPnLChart mergedData={chartData}/>
-            </div>
             <HistoryTable data={historyChartData}/>
           </div>
         )}

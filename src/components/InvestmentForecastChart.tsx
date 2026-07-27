@@ -309,7 +309,7 @@ const InvestmentForecastChart: React.FC<Props> = ({ investmentData }) => {
               label={{
                 value: g >= 1_000_000 ? `€${g / 1_000_000}M` : `€${g / 1000}k`,
                 position: 'insideTopRight',
-                fill: '#475569',
+                fill: '#94a3b8',
                 fontSize: 9,
               }}
             />

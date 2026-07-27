@@ -1,4 +1,4 @@
-import {Activity, ArrowDown, ArrowUp, Briefcase, Building, DollarSign, PiggyBank, Target, Wallet} from "lucide-react";
+import {Activity, ArrowDown, ArrowUp, Briefcase, PiggyBank, Landmark, DollarSign, Target, Wallet} from "lucide-react";
 import {formatEUR} from "../utils/utils";
 import {MergedData} from "../types";
 import React from "react";
@@ -51,8 +51,8 @@ const KPICards: React.FC<{
       <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-16 -mt-16"></div>
       <div className="relative">
         <div className="flex items-center justify-between mb-3">
-          <Building className="text-orange-200" size={28}/>
-          <span className="text-orange-200 text-xs font-medium">ACTIVE FIZICE</span>
+          <Landmark className="text-orange-200" size={28}/>
+          <span className="text-orange-200 text-xs font-medium">ACTIVE NELICHIDE</span>
         </div>
         <div className="text-3xl font-bold text-white mb-2">{formatEUR(totalAssetsEUR)}</div>
         <div className="text-orange-200 text-sm mb-2">

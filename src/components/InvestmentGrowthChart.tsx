@@ -70,6 +70,7 @@ const InvestmentGrowthChart: React.FC<{ investmentData: InvestmentData[] }> = ({
             contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px' }}
             labelStyle={{ color: '#94a3b8', fontSize: 11, marginBottom: 4 }}
             itemStyle={{ color: '#e2e8f0' }}
+            cursor={{ fill: 'rgba(148, 163, 184, 0.1)' }}
             formatter={(value: number, name: string, props: any) => {
               const d = props.payload;
               if (name === 'costBasis') return [formatEUR(value), 'Investit'];

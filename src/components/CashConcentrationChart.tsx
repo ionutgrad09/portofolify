@@ -61,7 +61,7 @@ const CashConcentrationChart: React.FC<Props> = ({ data, totalCashEUR }) => {
           <CartesianGrid strokeDasharray="3 3" stroke="#334155" horizontal={false} />
           <XAxis type="number" stroke="#94a3b8" tick={{ fontSize: 11, fill: '#e2e8f0' }} tickFormatter={(v: number) => `${v.toFixed(0)}%`} domain={[0, 100]} />
           <YAxis type="category" dataKey="name" stroke="#94a3b8" tick={{ fontSize: 11, fill: '#e2e8f0' }} width={110} />
-          <Tooltip content={<CustomTooltip />} />
+          <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(148, 163, 184, 0.1)' }} />
           <ReferenceLine x={50} stroke="#f59e0b" strokeDasharray="5 3" label={{ value: '50%', fill: '#f59e0b', fontSize: 10 }} />
           <Bar dataKey="pct" radius={[0, 4, 4, 0]} name="% din total">
             {sorted.map((entry, i) => (

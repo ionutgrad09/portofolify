@@ -59,21 +59,21 @@ const MonthlyPerformanceHeatmap: React.FC<MonthlyPerformanceHeatmapProps> = ({ m
 
   const getColor = (value: number) => {
     if (!value || value === 0) return 'bg-slate-700';
-    if (value >= 25) return 'bg-emerald-950';
-    if (value >= 20) return 'bg-emerald-900';
-    if (value >= 15) return 'bg-emerald-800';
-    if (value >= 10) return 'bg-emerald-700';
-    if (value >= 8)  return 'bg-emerald-600';
-    if (value >= 5)  return 'bg-emerald-500';
-    if (value >= 3)  return 'bg-emerald-400';
+    if (value >= 20) return 'bg-emerald-950';
+    if (value >= 15) return 'bg-emerald-900';
+    if (value >= 10) return 'bg-emerald-800';
+    if (value >= 7.5) return 'bg-emerald-700';
+    if (value >= 5)  return 'bg-emerald-600';
+    if (value >= 2.5)  return 'bg-emerald-500';
+    if (value >= 1)  return 'bg-emerald-400';
     if (value > 0)   return 'bg-emerald-300';
-    if (value > -3)  return 'bg-red-300';
-    if (value > -5)  return 'bg-red-400';
-    if (value > -8)  return 'bg-red-500';
-    if (value > -10) return 'bg-red-600';
-    if (value > -15) return 'bg-red-700';
-    if (value > -20) return 'bg-red-800';
-    if (value > -25) return 'bg-red-900';
+    if (value > -1)  return 'bg-red-300';
+    if (value > -2.5)  return 'bg-red-400';
+    if (value > -5)  return 'bg-red-500';
+    if (value > -7.5) return 'bg-red-600';
+    if (value > -10) return 'bg-red-700';
+    if (value > -15) return 'bg-red-800';
+    if (value > -20) return 'bg-red-900';
     return 'bg-red-950';
   };
 
