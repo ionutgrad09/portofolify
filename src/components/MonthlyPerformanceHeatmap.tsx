@@ -87,12 +87,12 @@ const MonthlyPerformanceHeatmap: React.FC<MonthlyPerformanceHeatmapProps> = ({ m
         Heatmap Performanță Lunară
       </h2>
 
-      <div className="overflow-x-auto">
-        <div className="inline-block min-w-full">
+      <div className="w-full">
+        <div className="w-full">
           <div className="flex gap-1 mb-2">
-            <div className="w-12"></div>
+            <div className="w-12 shrink-0"></div>
             {months.map((month, idx) => (
-              <div key={idx} className="w-16 text-center text-xs text-slate-400 font-medium">
+              <div key={idx} className="flex-1 text-center text-xs text-slate-400 font-medium">
                 {month}
               </div>
             ))}
@@ -100,7 +100,7 @@ const MonthlyPerformanceHeatmap: React.FC<MonthlyPerformanceHeatmapProps> = ({ m
 
           {years.map(year => (
             <div key={year} className="flex gap-1 mb-1">
-              <div className="w-12 text-sm text-slate-400 font-medium flex items-center">
+              <div className="w-12 shrink-0 text-sm text-slate-400 font-medium flex items-center">
                 {year}
               </div>
               {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(month => {
@@ -109,13 +109,14 @@ const MonthlyPerformanceHeatmap: React.FC<MonthlyPerformanceHeatmapProps> = ({ m
                 return (
                   <div
                     key={month}
-                    className={`w-16 h-12 ${getColor(value)} rounded flex items-center justify-center text-xs font-bold text-white hover:ring-2 hover:ring-white transition-all cursor-pointer group relative`}
+                    className={`flex-1 h-12 ${getColor(value)} rounded flex items-center justify-center text-xs font-bold text-white hover:ring-2 hover:ring-white transition-all cursor-pointer group relative`}
                     title={`${months[month - 1]} ${year}: ${value?.toFixed(2)}% (${delta < 0 ? '-' : '+'}€${Math.abs(delta)?.toFixed(2)})`}
                     onClick={() => setSelected({ year, month, pct: value, eur: delta })}
                   >
                     {value !== 0 && (
-                      <span className="opacity-0 group-hover:opacity-100">
-                        {value?.toFixed(1)}%
+                      <span className="opacity-0 group-hover:opacity-100 flex flex-col items-center leading-tight">
+                        <span>{value?.toFixed(1)}%</span>
+                        <span className="text-[10px] font-normal opacity-90">{delta >= 0 ? '+' : '-'}€{Math.abs(delta)?.toFixed(0)}</span>
                       </span>
                     )}
                   </div>
