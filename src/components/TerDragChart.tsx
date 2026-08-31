@@ -2,6 +2,7 @@ import React from 'react';
 import { Percent } from 'lucide-react';
 import { Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import type { InvestmentData } from '../types';
+import ChartInfo from "./ChartInfo";
 
 const formatEUR = (value: number): string =>
   new Intl.NumberFormat('ro-RO', { style: 'currency', currency: 'EUR', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(value);
@@ -71,7 +72,7 @@ const TerDragChart: React.FC<{ investmentData: InvestmentData[] }> = ({ investme
             width={80}
           />
           <Tooltip
-            contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px' }}
+            contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px', color: 'white' }}
             labelStyle={{ color: '#94a3b8', fontSize: 11, marginBottom: 4 }}
             itemStyle={{ color: '#e2e8f0' }}
             cursor={{ fill: 'rgba(148, 163, 184, 0.1)' }}
@@ -102,6 +103,13 @@ const TerDragChart: React.FC<{ investmentData: InvestmentData[] }> = ({ investme
           <p className="text-red-400 font-bold text-base">{formatEUR(total10yr)}</p>
           <p className="text-slate-500">la valorile actuale</p>
         </div>
+      </div>
+
+      <div className="mt-6">
+        <p className="text-slate-400 text-xs mb-2">
+          Impactul TER pe Termen Lung
+        </p>
+        <ChartInfo text="TER (Total Expense Ratio) = comisionul anual perceput de ETF-uri, dedus automat din performanță. Graficul arată cum comisioanele cumulează în timp față de un scenariu fără costuri. Cu cât TER-ul tău mediu este mai mic, cu atât mai mulți bani rămân compoundați. Ideal: sub 0.20%/an." />
       </div>
     </div>
   );

@@ -2,6 +2,7 @@ import React from 'react';
 import { Sliders } from 'lucide-react';
 import { Bar, BarChart, CartesianGrid, Cell, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import type { InvestmentData } from '../types';
+import ChartInfo from './ChartInfo';
 
 const PortfolioDriftChart: React.FC<{ investmentData: InvestmentData[] }> = ({ investmentData }) => {
   const withAlloc = investmentData.filter(e => e.alocare > 0);
@@ -29,6 +30,8 @@ const PortfolioDriftChart: React.FC<{ investmentData: InvestmentData[] }> = ({ i
         Pozitiv = supra-ponderat față de target &nbsp;|&nbsp; Negativ = sub-ponderat
       </p>
 
+      <ChartInfo text="Arată cât de mult s-a abătut fiecare ETF față de alocarea ta țintă (%). O bară pozitivă = ETF-ul a crescut mai mult și acum depășește ținta. O bară negativă = ETF-ul a rămas în urmă. Dacă o bară depășește ±5%, ar putea fi momentul să rebalansezi portofoliul (vinzi din cel supraponderat, cumperi din cel subponderat)." />
+
       <ResponsiveContainer width="100%" height={Math.max(180, withAlloc.length * 40)}>
         <BarChart data={chartData} layout="vertical" margin={{ left: 10, right: 30 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#334155" horizontal={false}/>
@@ -47,7 +50,7 @@ const PortfolioDriftChart: React.FC<{ investmentData: InvestmentData[] }> = ({ i
             width={85}
           />
           <Tooltip
-            contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px' }}
+            contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px', color: 'white' }}
             labelStyle={{ color: '#94a3b8', fontSize: 11, marginBottom: 4 }}
             itemStyle={{ color: '#e2e8f0' }}
             cursor={{ fill: 'rgba(148, 163, 184, 0.1)' }}

@@ -26,7 +26,7 @@ const KPICards: React.FC<{
         <div className="text-blue-200 text-sm mb-2">Lichid: {formatEUR(latestData.eur)}</div>
         <div className={`flex items-center gap-1 text-sm ${changeNetWorth >= 0 ? 'text-green-300' : 'text-red-300'}`}>
           {changeNetWorth >= 0 ? <ArrowUp size={16}/> : <ArrowDown size={16}/>}
-          <span>{changePercent}% vs ultima perioadă</span>
+          <span>{formatEUR(Math.abs(changeNetWorth))} ({changePercent}%) vs ultima perioadă</span>
         </div>
       </div>
     </div>

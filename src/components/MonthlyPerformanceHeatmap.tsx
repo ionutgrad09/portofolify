@@ -4,6 +4,7 @@
 import React from 'react';
 import { Calendar } from 'lucide-react';
 import type { MergedData } from '../types';
+import ChartInfo from './ChartInfo';
 
 interface MonthlyPerformanceHeatmapProps {
   mergedData: MergedData[];
@@ -85,6 +86,7 @@ const MonthlyPerformanceHeatmap: React.FC<MonthlyPerformanceHeatmapProps> = ({ m
       <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
         <Calendar className="text-cyan-400" size={24}/>
         Heatmap Performanță Lunară
+        <ChartInfo text="Grid cu ani pe verticală și luni pe orizontală. Fiecare celulă = variația procentuală a averii față de luna anterioară. Verde intens = creștere mare, roșu intens = scădere mare. Click pe o celulă pentru detalii. Util pentru a vedea sezonalitatea (ex: luni cu taxe apar constant roșii)." />
       </h2>
 
       <div className="w-full">

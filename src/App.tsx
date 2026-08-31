@@ -57,9 +57,20 @@ import AssetWeightChart from "./components/AssetWeightChart";
 import AssetYoYChart from "./components/AssetYoYChart";
 import PnLHistogram from "./components/PnLHistogram";
 import MonthlyPnLChart from "./components/MonthlyPnLChart";
+import SavingsRateChart from "./components/SavingsRateChart";
 import MomentumChart from "./components/MomentumChart";
 import EmergencyFundCard from "./components/EmergencyFundCard";
 import FIRECalculator from "./components/FIRECalculator";
+import MonteCarloChart from "./components/MonteCarloChart";
+import CoastFIRECard from "./components/CoastFIRECard";
+import GoalETAChart from "./components/GoalETAChart";
+import ContributionImpactChart from "./components/ContributionImpactChart";
+import SavingsRateChart from "./components/SavingsRateChart";
+import YearOverYearChart from "./components/YearOverYearChart";
+import WaterfallChart from "./components/WaterfallChart";
+import RollingVolatilityChart from "./components/RollingVolatilityChart";
+import StreakTracker from "./components/StreakTracker";
+import MonthlyPnLHistogram from "./components/MonthlyPnLHistogram";
 
 
 const buildMergedData = (historyEntries: WealthData[], assetEntries: AssetData[]): MergedData[] => {
@@ -505,17 +516,11 @@ const WealthTracker: React.FC = () => {
         {activeTab === 'analiza' && (
           <div className="space-y-6">
             <PerformanceStatsBar mergedData={chartData}/>
-            <DrawdownChart mergedData={chartData}/>
-            <AnnualPerformanceChart mergedData={chartData}/>
-            <MonthlyPnLChart mergedData={chartData}/>
-            <PnLHistogram mergedData={chartData}/>
-            <Rolling12MonthChart mergedData={chartData}/>
-            <MomentumChart mergedData={chartData}/>
             <MonthlyPerformanceHeatmap mergedData={chartData}/>
             <div className="bg-slate-900/50 backdrop-blur-xl rounded-2xl p-6 shadow-2xl border border-slate-800">
               <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
                 <Activity className="text-purple-400" size={24}/>
-                Profit & Pierdere Săptămânală
+                Profit & Pierdere per Perioadă
               </h2>
               <ResponsiveContainer width="100%" height={260}>
                 <BarChart data={historyChartData}>
@@ -531,19 +536,35 @@ const WealthTracker: React.FC = () => {
                 </BarChart>
               </ResponsiveContainer>
             </div>
+            <MonthlyPnLChart mergedData={chartData}/>
+            <SavingsRateChart mergedData={chartData}/>
+            <WaterfallChart mergedData={chartData}/>
+            <StreakTracker mergedData={chartData}/>
+            <PnLHistogram mergedData={chartData}/>
+            <MonthlyPnLHistogram mergedData={chartData}/>
+            <DrawdownChart mergedData={chartData}/>
+            <RollingVolatilityChart mergedData={chartData}/>
+            <YearOverYearChart mergedData={chartData}/>
+            <AnnualPerformanceChart mergedData={chartData}/>
+            <Rolling12MonthChart mergedData={chartData}/>
+            <MomentumChart mergedData={chartData}/>
           </div>
         )}
 
         {/* ── PROIECȚII ────────────────────────────────────────── */}
         {activeTab === 'proiectii' && (
           <div className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <FinancialGoalsProgress mergedData={projectionData}/>
-              <ProjectionChart mergedData={projectionData}/>
-            </div>
+            <FinancialGoalsProgress mergedData={projectionData}/>
+            <GoalETAChart mergedData={projectionData}/>
+            <ProjectionChart mergedData={projectionData}/>
             <MilestoneTimeline mergedData={projectionData}/>
             <ScenarioProjectionChart mergedData={projectionData}/>
-            <FIRECalculator mergedData={projectionData}/>
+            <MonteCarloChart mergedData={projectionData}/>
+            <ContributionImpactChart mergedData={projectionData}/>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <FIRECalculator mergedData={projectionData}/>
+              <CoastFIRECard mergedData={projectionData}/>
+            </div>
           </div>
         )}
 

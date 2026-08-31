@@ -2,6 +2,7 @@ import React from 'react';
 import { CalendarDays } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ReferenceLine, ResponsiveContainer, Cell } from 'recharts';
 import type { MergedData } from '../types';
+import ChartInfo from './ChartInfo';
 
 const parseDDMMYYYY = (dateStr: string): Date => {
   const [day, month, year] = dateStr.split('.').map(Number);
@@ -23,28 +24,23 @@ const MonthlyPnLChart: React.FC<Props> = ({ mergedData }) => {
   );
 
   // Group by calendar month-year — last entry per month
-  const monthMap = new Map<string, { monthIndex: number; lastValue: number }>();
+  const monthMap = new Map<string, { label: string; lastValue: number }>();
   sorted.forEach(e => {
     const d = parseDDMMYYYY(e.date);
     const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-    monthMap.set(key, { monthIndex: d.getMonth(), lastValue: e.netWorth });
+    const label = `${MONTH_NAMES[d.getMonth()]} ${d.getFullYear()}`;
+    monthMap.set(key, { label, lastValue: e.netWorth });
   });
 
-  const months = Array.from(monthMap.entries())
+  const monthEntries = Array.from(monthMap.entries())
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([, v]) => v);
 
-  // Aggregate month-over-month P&L into calendar months (all Julys summed, etc.)
-  const pnlByMonth = new Array<number>(12).fill(0);
-  const hasData = new Array<boolean>(12).fill(false);
-  months.slice(1).forEach((m, i) => {
-    pnlByMonth[m.monthIndex] += m.lastValue - months[i].lastValue;
-    hasData[m.monthIndex] = true;
-  });
-
-  const chartData = MONTH_NAMES
-    .map((label, idx) => ({ month: label, pnl: parseFloat(pnlByMonth[idx].toFixed(0)), monthIndex: idx }))
-    .filter(d => hasData[d.monthIndex]);
+  // Chronological month-over-month P&L
+  const chartData = monthEntries.slice(1).map((m, i) => ({
+    month: m.label,
+    pnl: parseFloat((m.lastValue - monthEntries[i].lastValue).toFixed(0)),
+  }));
 
   if (chartData.length === 0) return null;
 
@@ -57,9 +53,10 @@ const MonthlyPnLChart: React.FC<Props> = ({ mergedData }) => {
     <div className="bg-slate-900/50 backdrop-blur-xl rounded-2xl p-6 shadow-2xl border border-slate-800">
       <h3 className="text-lg font-bold text-white mb-1 flex items-center gap-2">
         <CalendarDays className="text-blue-400" size={20} />
-        P&amp;L Lunar Agregat
+        P&amp;L Lunar
+        <ChartInfo text="Arată câștigul sau pierderea netă a averii tale lună cu lună, în ordine cronologică. Fiecare bară = diferența dintre ultima valoare a lunii respective și ultima valoare a lunii anterioare. Verde = lună pozitivă, roșu = lună negativă (taxe, cheltuieli mari). Notă: include și mișcările de piață din investiții." />
       </h3>
-      <p className="text-xs text-slate-400 mb-4">Câștig sau pierdere netă agregată per lună calendaristică.</p>
+      <p className="text-xs text-slate-400 mb-4">Câștig sau pierdere netă lună cu lună, în ordine cronologică.</p>
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
         <div className="bg-slate-800/50 rounded-lg p-3 text-center">

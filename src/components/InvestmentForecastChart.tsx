@@ -278,7 +278,7 @@ const InvestmentForecastChart: React.FC<Props> = ({ investmentData }) => {
             width={54}
           />
           <Tooltip
-            contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px' }}
+            contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px', color: 'white' }}
             labelStyle={{ color: '#94a3b8', fontSize: 11, marginBottom: 4 }}
             itemStyle={{ color: '#e2e8f0' }}
             formatter={(value: number, name: string) => {

@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { Target } from 'lucide-react';
-import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { Area, AreaChart, CartesianGrid, Line, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { oneTimeInflowInWindow } from '../utils/utils';
+import ChartInfo from './ChartInfo';
 
 // Mock types for demonstration
 type MergedData = {
@@ -168,6 +169,7 @@ const ProjectionChart: React.FC<{ mergedData: MergedData[] }> = ({ mergedData })
       <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
         <Target className="text-blue-400" size={24}/>
         Proiecție 52 Săptămâni
+        <ChartInfo text="Proiectează averea ta pentru următoarele 52 de săptămâni bazat pe trendul tău sezonier istoric (mediana per săptămână calendaristică). Linia albastră = proiecție sezonieră + boost din investiții; Linia galbenă punctată = traiectoria liniară simplă la rata ta istorică (fără sezonalitate); Banda albastră = intervalul de ±1 deviație standard. Contribuție extra = bani suplimentari față de obicei. Randamentul se aplică DOAR pe soldul de investiții curent." />
       </h2>
 
       <div className="bg-slate-800/50 rounded-lg p-3 mb-4 space-y-2">
@@ -240,6 +242,12 @@ const ProjectionChart: React.FC<{ mergedData: MergedData[] }> = ({ mergedData })
         </AreaChart>
       </ResponsiveContainer>
 
+      <div className="flex flex-wrap gap-4 mt-2 text-xs text-slate-400">
+        <span className="flex items-center gap-1.5"><span className="inline-block w-4 border-t-2 border-blue-500"></span>Proiecție sezonieră + boost</span>
+        <span className="flex items-center gap-1.5"><span className="inline-block w-4 border-t-2 border-dashed border-amber-400"></span>Traiectorie istorică liniară</span>
+        <span className="flex items-center gap-1.5"><span className="inline-block w-4 h-3 bg-blue-500/20 rounded"></span>Bandă ±1σ</span>
+      </div>
+
       {/* Monthly Projections Table */}
       <div className="mt-6">
         <h3 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
@@ -275,6 +283,22 @@ const ProjectionChart: React.FC<{ mergedData: MergedData[] }> = ({ mergedData })
       {/* Settings */}
       <div className="mt-5 pt-4 border-t border-slate-700/50">
         <p className="text-xs text-slate-400 mb-3 font-medium">Parametri proiecție</p>
+        <div className="bg-slate-800/30 border border-slate-700/40 rounded-xl p-3 mb-3 text-xs text-slate-400 space-y-1">
+          <p>
+            <span className="text-white font-semibold">Trendul istoric</span> (linia albastră) derivă din evoluția reală a averii tale —
+            include deja salarii, cheltuieli, pierderi, taxe. Nu trebuie să adaugi nimic dacă vrei să proiectezi "la fel ca până acum".
+          </p>
+          <p>
+            <span className="text-purple-400 font-semibold">Contribuție lunară netă</span> = bani <em>extra</em> pe care intenționezi să îi economisești
+            lunar față de comportamentul tău istoric. De ex. dacă în trecut ai economisit în medie €3k/lună și vrei să modelezi €5k/lună, introduci €2k.
+            Dacă nu vrei să schimbi nimic, lasă €0.
+          </p>
+          <p>
+            <span className="text-amber-400 font-semibold">Randament investiții</span> = dobânda anuală estimată pe soldul tău de investiții
+            (ETF-uri, acțiuni etc.). Nu se aplică pe toată averea, ci doar pe <span className="text-white">{formatEUR(lastEntry.investments)}</span> — soldul
+            curent de investiții. La {annualReturn}% asta înseamnă ~{formatEUR(lastEntry.investments * (annualReturn / 100) / 12)}/lună în plus față de trend.
+          </p>
+        </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="text-xs text-slate-400 mb-1 block">Contribuție lunară netă (EUR)</label>
@@ -288,7 +312,7 @@ const ProjectionChart: React.FC<{ mergedData: MergedData[] }> = ({ mergedData })
             </div>
           </div>
           <div>
-            <label className="text-xs text-slate-400 mb-1 block">Randament anual investiții (%)</label>
+            <label className="text-xs text-slate-400 mb-1 block">Randament anual investiții pe {formatEUR(lastEntry.investments)} (%)</label>
             <div className="flex flex-col gap-1.5">
               <input type="number" min={0} max={30} step={0.5} value={annualReturn}
                 onChange={e => handleReturn(Number(e.target.value))}

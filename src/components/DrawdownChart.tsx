@@ -6,6 +6,7 @@ import {
 } from 'recharts';
 import { formatEUR } from '../utils/utils';
 import type { MergedData } from '../types';
+import ChartInfo from './ChartInfo';
 
 const parseDDMMYYYY = (dateStr: string): Date => {
   const [day, month, year] = dateStr.split('.').map(Number);
@@ -44,7 +45,8 @@ const DrawdownChart: React.FC<{ mergedData: MergedData[] }> = ({ mergedData }) =
     <div className="bg-slate-900/50 backdrop-blur-xl rounded-2xl p-6 shadow-2xl border border-slate-800">
       <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
         <Activity className="text-blue-400" size={24}/>
-        Variație Săptămânală & Drawdown
+        Variație per Perioadă & Drawdown
+        <ChartInfo text="Barele colorate arată variația averii față de înregistrarea anterioară (verde = creștere, roșu = scădere). Linia portocalie punctată arată drawdown-ul față de maximul istoric (ATH) — cât de mult ești sub cel mai mare nivel atins vreodată. Un drawdown de -5% înseamnă că ești cu 5% sub ATH. Cu cât linia este mai aproape de 0, cu atât ești mai aproape de maximul tău." />
       </h2>
 
       <div className="bg-slate-800/50 rounded-lg p-3 mb-4 grid grid-cols-3 gap-2 text-xs">
@@ -63,8 +65,8 @@ const DrawdownChart: React.FC<{ mergedData: MergedData[] }> = ({ mergedData }) =
       </div>
 
       <div className="flex items-center gap-4 mb-3 text-xs text-slate-400">
-        <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded-sm bg-emerald-500"></span> Creștere săpt.</span>
-        <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded-sm bg-red-500"></span> Scădere săpt.</span>
+        <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded-sm bg-emerald-500"></span> Creștere perioadă</span>
+        <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded-sm bg-red-500"></span> Scădere perioadă</span>
         <span className="flex items-center gap-1"><span className="inline-block w-4 border-t-2 border-dashed border-orange-400"></span> Drawdown ATH</span>
       </div>
 
@@ -86,13 +88,13 @@ const DrawdownChart: React.FC<{ mergedData: MergedData[] }> = ({ mergedData }) =
             tickFormatter={(val: number) => `${val.toFixed(1)}%`}
           />
           <Tooltip
-            contentStyle={{backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px'}}
+            contentStyle={{backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px', color: 'white'}}
             labelStyle={{color: '#94a3b8', fontSize: 11, marginBottom: 4}}
             itemStyle={{color: '#e2e8f0', fontSize: 12}}
             cursor={{fill: 'rgba(148,163,184,0.08)'}}
             formatter={(value: number, name: string) => [
               `${(value as number).toFixed(2)}%`,
-              name === 'changePct' ? 'Variație săpt.' : 'Drawdown ATH'
+              name === 'changePct' ? 'Variație perioadă' : 'Drawdown ATH'
             ]}
             labelFormatter={(label) => {
               const entry = chartData.find(d => d.date === label);

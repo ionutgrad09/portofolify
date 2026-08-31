@@ -3,6 +3,7 @@ import { BarChart2 } from 'lucide-react';
 import { Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { formatEUR } from '../utils/utils';
 import type { MergedData } from '../types';
+import ChartInfo from './ChartInfo';
 
 const parseDDMMYYYY = (dateStr: string): Date => {
   const [day, month, year] = dateStr.split('.').map(Number);
@@ -48,6 +49,7 @@ const AnnualPerformanceChart: React.FC<{ mergedData: MergedData[] }> = ({ merged
       <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
         <BarChart2 className="text-yellow-400" size={24}/>
         Performanță Anuală
+        <ChartInfo text="Afișează câștigul sau pierderea totală a averii nete pentru fiecare an calendaristic. Valoarea de start a fiecărui an este ultima valoare din anul precedent. Barele verzi = ani cu creștere netă, barele roșii = ani cu scădere. Procentul din tooltip reprezintă variația relativă față de începutul anului." />
       </h2>
 
       <div className="bg-slate-800/50 rounded-lg p-3 mb-4 grid grid-cols-3 gap-2 text-xs">
@@ -79,7 +81,7 @@ const AnnualPerformanceChart: React.FC<{ mergedData: MergedData[] }> = ({ merged
             tickFormatter={(val: number) => `€${(val / 1000).toFixed(0)}k`}
           />
           <Tooltip
-            contentStyle={{backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px'}}
+            contentStyle={{backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px', color: 'white'}}
             labelStyle={{color: '#94a3b8', fontSize: 11, marginBottom: 4}}
             itemStyle={{color: '#e2e8f0', fontSize: 13}}
             cursor={{fill: 'rgba(148,163,184,0.1)'}}

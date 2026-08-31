@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Flame } from 'lucide-react';
-import { formatEUR } from '../utils/utils';
+import {formatEUR, oneTimeInflowInWindow} from '../utils/utils';
 import type { MergedData } from '../types';
 
 const parseDDMMYYYY = (dateStr: string): Date => {
@@ -38,7 +38,10 @@ const FIRECalculator: React.FC<Props> = ({ mergedData }) => {
     (endDate.getMonth() - startDate.getMonth()) +
     (endDate.getDate() - startDate.getDate()) / 30;
 
-  const historicalMonthly = totalMonths > 0 ? (currentWealth - startWealth) / totalMonths : 0;
+  const lumpSum = oneTimeInflowInWindow(startDate, endDate);
+  const historicalMonthly = totalMonths > 0
+    ? (currentWealth - startWealth - lumpSum) / totalMonths
+    : 0;
 
   const computeTrend = (months: number): number => {
     const cutoff = new Date(endDate.getTime());
@@ -49,7 +52,8 @@ const FIRECalculator: React.FC<Props> = ({ mergedData }) => {
     const en = parseDDMMYYYY(entries[entries.length - 1].date);
     const elapsed = (en.getTime() - s.getTime()) / (1000 * 60 * 60 * 24 * 30.44);
     if (elapsed < 0.5) return historicalMonthly;
-    return (entries[entries.length - 1].netWorth - entries[0].netWorth) / elapsed;
+    const lump = oneTimeInflowInWindow(s, en);
+    return (entries[entries.length - 1].netWorth - entries[0].netWorth - lump) / elapsed;
   };
 
   const trend3  = computeTrend(3);

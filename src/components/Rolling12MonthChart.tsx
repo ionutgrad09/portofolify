@@ -5,6 +5,7 @@ import {
   ResponsiveContainer, ReferenceLine,
 } from 'recharts';
 import type { MergedData } from '../types';
+import ChartInfo from './ChartInfo';
 
 const parseDDMMYYYY = (dateStr: string): Date => {
   const [day, month, year] = dateStr.split('.').map(Number);
@@ -67,6 +68,7 @@ const Rolling12MonthChart: React.FC<Props> = ({ mergedData }) => {
       <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
         <TrendingUp className="text-blue-400" size={24} />
         Return Cumulativ (Rolling 12 Luni)
+        <ChartInfo text="Fiecare punct arată câți % ai câștigat față de același moment cu 12 luni în urmă. De exemplu, dacă la 01.06.2026 valoarea este +30%, înseamnă că averea ta e cu 30% mai mare față de 01.06.2025. Spre deosebire de randamentul cumulativ total, acesta surprinde evoluția recentă în ferestre de un an." />
       </h2>
 
       <ResponsiveContainer width="100%" height={260}>

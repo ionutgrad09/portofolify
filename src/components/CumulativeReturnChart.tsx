@@ -2,6 +2,7 @@ import React from 'react';
 import { TrendingUp } from 'lucide-react';
 import { Area, AreaChart, CartesianGrid, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import type { MergedData } from '../types';
+import ChartInfo from './ChartInfo';
 
 const parseDDMMYYYY = (dateStr: string): Date => {
   const [day, month, year] = dateStr.split('.').map(Number);
@@ -40,6 +41,7 @@ const CumulativeReturnChart: React.FC<{ mergedData: MergedData[] }> = ({ mergedD
       <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
         <TrendingUp className="text-emerald-400" size={24}/>
         Randament Cumulativ
+        <ChartInfo text="Arată creșterea totală procentuală a averii tale de la prima înregistrare până azi. De exemplu, +50% înseamnă că averea ta s-a mărit cu jumătate față de punctul de start. Linia verde = creștere, roșie = scădere față de valoarea inițială." />
       </h2>
 
       <div className="bg-slate-800/50 rounded-lg p-3 mb-4 grid grid-cols-3 gap-1 text-xs">
@@ -86,7 +88,7 @@ const CumulativeReturnChart: React.FC<{ mergedData: MergedData[] }> = ({ mergedD
             width={42}
           />
           <Tooltip
-            contentStyle={{backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px'}}
+            contentStyle={{backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px', color: 'white'}}
             labelStyle={{color: '#94a3b8', fontSize: 11, marginBottom: 4}}
             itemStyle={{color: '#e2e8f0'}}
             formatter={(value: number) => [`${(value as number).toFixed(2)}%`, 'Randament']}

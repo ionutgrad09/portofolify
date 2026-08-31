@@ -3,6 +3,7 @@ import { Layers } from 'lucide-react';
 import { Area, AreaChart, CartesianGrid, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import type { MergedData } from '../types';
 import { oneTimeInflowInWindow } from '../utils/utils';
+import ChartInfo from './ChartInfo';
 
 const parseDDMMYYYY = (dateStr: string): Date => {
   const [day, month, year] = dateStr.split('.').map(Number);
@@ -39,6 +40,8 @@ const ScenarioProjectionChart: React.FC<{ mergedData: MergedData[] }> = ({ merge
     Number(localStorage.getItem(RETURN_KEY) || '7.5'));
   const [projYears, setProjYears] = useState<number>(() =>
     Number(localStorage.getItem(PROJ_YEARS_KEY) || '5'));
+  const [inflationAdjusted, setInflationAdjusted] = useState(false);
+  const INFLATION = 0.03; // 3% EUR annual
 
   const handleContrib = (v: number) => { setMonthlyContrib(v); localStorage.setItem(CONTRIB_KEY, String(v)); };
   const handleReturn  = (v: number) => { setAnnualReturn(v);   localStorage.setItem(RETURN_KEY,  String(v)); };
@@ -102,7 +105,8 @@ const ScenarioProjectionChart: React.FC<{ mergedData: MergedData[] }> = ({ merge
     base       += baseMonthlyAvg      + boost;
     optimistic += optimisticMonthly   + boost;
     pessimistic += pessimisticMonthly + boost;
-    chartData.push({ label, base, optimistic, pessimistic });
+    const deflator = inflationAdjusted ? Math.pow(1 + INFLATION, -m / 12) : 1;
+    chartData.push({ label, base: base * deflator, optimistic: optimistic * deflator, pessimistic: pessimistic * deflator });
   }
 
   const relevantGoals = GOALS.filter(
@@ -121,10 +125,20 @@ const ScenarioProjectionChart: React.FC<{ mergedData: MergedData[] }> = ({ merge
 
   return (
     <div className="bg-slate-900/50 backdrop-blur-xl rounded-2xl p-6 shadow-2xl border border-slate-800">
-      <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-        <Layers className="text-indigo-400" size={24}/>
-        Proiecție Scenarii {projYears} {projYears === 1 ? 'An' : 'Ani'}
-      </h2>
+      <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+        <h2 className="text-xl font-bold text-white flex items-center gap-2">
+          <Layers className="text-indigo-400" size={24}/>
+          Proiecție Scenarii {projYears} {projYears === 1 ? 'An' : 'Ani'}
+        </h2>
+        <button
+          onClick={() => setInflationAdjusted(v => !v)}
+          className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors border ${inflationAdjusted ? 'bg-orange-600 border-orange-500 text-white' : 'border-slate-600 text-slate-400 hover:text-white'}`}
+        >
+          {inflationAdjusted ? '📉 Ajustat inflație (3%)' : '💶 Nominal (neajustat)'}
+        </button>
+      </div>
+
+      <ChartInfo text="Proiectează averea ta pe mai mulți ani în 3 scenarii: Baza (albastru) = trendul tău istoric mediu; Optimist (verde) = trend +25%; Pesimist (roșu) = trend -25%. Contribuție lunară extra = bani suplimentari față de comportamentul tău obișnuit. Randament investiții = dobânda aplicată doar pe portofoliul tău de investiții, nu pe toată averea. Butonul de inflație ajustează valorile la puterea de cumpărare din ziua de azi." />
 
       <div className="bg-slate-800/50 rounded-lg p-3 mb-4 grid grid-cols-3 gap-2 text-xs">
         <div>
@@ -144,22 +158,24 @@ const ScenarioProjectionChart: React.FC<{ mergedData: MergedData[] }> = ({ merge
         </div>
       </div>
 
-      <div className="bg-slate-800/30 border border-slate-700/40 rounded-lg p-3 mb-4 text-xs">
-        <div className="grid grid-cols-2 gap-2 mb-3">
-          <div>
-            <p className="text-slate-500">+ Contribuție lunară netă</p>
-            <p className="text-purple-400 font-bold">{formatEUR(monthlyContrib)}/lună</p>
-            <p className="text-slate-600 text-[9px]">intră în investiții → compoundat</p>
-          </div>
-          <div>
-            <p className="text-slate-500">+ Randament investiții ({annualReturn}%/an)</p>
-            <p className="text-amber-400 font-bold">{formatEUR(lastEntry.investments * (annualReturn / 100) / 12)}/lună inițial (crește)</p>
-          </div>
-        </div>
-        {/* Sliders for contribution + return rate inline */}
+      <div className="bg-slate-800/30 border border-slate-700/40 rounded-lg p-3 mb-4 text-xs space-y-2">
+        <p className="text-slate-400">
+          <span className="text-white font-semibold">Trendul de bază</span> = media istorică lunară a averii tale reale
+          (include salarii, cheltuieli, taxe și piață). Scenariile ±25% se aplică doar pe această componentă.
+        </p>
+        <p className="text-slate-400">
+          <span className="text-purple-400 font-semibold">Contribuție lunară netă ({formatEUR(monthlyContrib)}/lună)</span> = bani <em>extra</em> pe
+          care intenționezi să îi economisești față de comportamentul tău istoric. Dacă nu vrei să schimbi nimic, lasă €0.
+          Contribuția intră în soldul de investiții și se compounduiește.
+        </p>
+        <p className="text-slate-400">
+          <span className="text-amber-400 font-semibold">Randament investiții ({annualReturn}%/an)</span> = dobânda anuală estimată pe soldul de investiții
+          ({formatEUR(lastEntry.investments)} acum). Generează ~{formatEUR(lastEntry.investments * (annualReturn / 100) / 12)}/lună inițial,
+          crescând pe măsură ce soldul crește. Nu se aplică pe toată averea.
+        </p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-slate-700/40">
           <div>
-            <label className="text-[10px] text-slate-400 mb-1 block">Contribuție lunară netă (EUR)</label>
+            <label className="text-[10px] text-slate-400 mb-1 block">Contribuție lunară extra (EUR)</label>
             <div className="flex gap-2 items-center">
               <input type="number" min={0} step={100} value={monthlyContrib}
                 onChange={e => handleContrib(Number(e.target.value))}
@@ -213,7 +229,7 @@ const ScenarioProjectionChart: React.FC<{ mergedData: MergedData[] }> = ({ merge
             tickFormatter={formatEURShort}
           />
           <Tooltip
-            contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px' }}
+            contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px', color: 'white' }}
             labelStyle={{ color: '#94a3b8', fontSize: 11, marginBottom: 4 }}
             itemStyle={{ color: '#e2e8f0' }}
             formatter={(value: number, name: string) => {
