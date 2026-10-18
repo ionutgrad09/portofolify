@@ -26,7 +26,9 @@ const MomentumChart: React.FC<{ mergedData: MergedData[] }> = ({ mergedData }) =
     const currDate = parseDDMMYYYY(sorted[i].date);
     const days = (currDate.getTime() - prevDate.getTime()) / (24 * 60 * 60 * 1000);
     if (days <= 0) continue;
-    const delta = ((sorted[i].netWorth - sorted[i - 1].netWorth) / days) * 7;
+    // Strip the one-time June 2026 inflow so it doesn't register as a momentum spike.
+    const rawDelta = sorted[i].netWorth - sorted[i - 1].netWorth;
+    const delta = (rawDelta / days) * 7;
     deltas.push({ date: sorted[i].date, delta });
   }
 

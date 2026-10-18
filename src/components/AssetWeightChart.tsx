@@ -61,6 +61,7 @@ const AssetWeightChart: React.FC<Props> = ({ assetsData, mergedData }) => {
           <Tooltip
             contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px', color: '#f1f5f9' }}
             labelStyle={{ color: '#f1f5f9', fontWeight: 'bold' }}
+            itemStyle={{ color: '#e2e8f0' }}
             formatter={(v: any, name: string) => [`${Number(v).toFixed(2)}%`, name]}
           />
           <Legend wrapperStyle={{ paddingTop: 8, fontSize: 11, color: '#f1f5f9' }} />

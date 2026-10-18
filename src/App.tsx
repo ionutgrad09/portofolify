@@ -65,12 +65,19 @@ import MonteCarloChart from "./components/MonteCarloChart";
 import CoastFIRECard from "./components/CoastFIRECard";
 import GoalETAChart from "./components/GoalETAChart";
 import ContributionImpactChart from "./components/ContributionImpactChart";
-import SavingsRateChart from "./components/SavingsRateChart";
 import YearOverYearChart from "./components/YearOverYearChart";
 import WaterfallChart from "./components/WaterfallChart";
 import RollingVolatilityChart from "./components/RollingVolatilityChart";
 import StreakTracker from "./components/StreakTracker";
 import MonthlyPnLHistogram from "./components/MonthlyPnLHistogram";
+import GrowthAttributionChart from "./components/GrowthAttributionChart";
+import SeasonalityChart from "./components/SeasonalityChart";
+import RollingSharpeChart from "./components/RollingSharpeChart";
+import BestWorstMonthsChart from "./components/BestWorstMonthsChart";
+import RollingCAGRChart from "./components/RollingCAGRChart";
+import RealNetWorthChart from "./components/RealNetWorthChart";
+import HoldingsTreemap from "./components/HoldingsTreemap";
+import FIRESensitivityChart from "./components/FIRESensitivityChart";
 
 
 const buildMergedData = (historyEntries: WealthData[], assetEntries: AssetData[]): MergedData[] => {
@@ -403,8 +410,8 @@ const WealthTracker: React.FC = () => {
         {activeTab === 'sumar' && (
           <div className="space-y-6">
             {/* Net worth chart + allocation stacked bar */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <div className="lg:col-span-2 bg-slate-900/50 backdrop-blur-xl rounded-2xl p-6 shadow-2xl border border-slate-800">
+            <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+              <div className="lg:col-span-3 bg-slate-900/50 backdrop-blur-xl rounded-2xl p-6 shadow-2xl border border-slate-800">
                 <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
                   <TrendingUp className="text-blue-400" size={24}/>
                   Valoarea Totală
@@ -426,7 +433,7 @@ const WealthTracker: React.FC = () => {
                 </ResponsiveContainer>
               </div>
 
-              <div className="bg-slate-900/50 backdrop-blur-xl rounded-2xl p-6 shadow-2xl border border-slate-800">
+              <div className="lg:col-span-2 bg-slate-900/50 backdrop-blur-xl rounded-2xl p-6 shadow-2xl border border-slate-800">
                 <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
                   <PiggyBank className="text-green-400" size={24}/>
                   Alocare Actuale (%)
@@ -509,6 +516,8 @@ const WealthTracker: React.FC = () => {
               <CumulativeReturnChart mergedData={chartData}/>
               <LiquidityChart mergedData={chartData}/>
             </div>
+
+            <MilestoneTimeline mergedData={projectionData}/>
           </div>
         )}
 
@@ -536,31 +545,57 @@ const WealthTracker: React.FC = () => {
                 </BarChart>
               </ResponsiveContainer>
             </div>
-            <MonthlyPnLChart mergedData={chartData}/>
-            <SavingsRateChart mergedData={chartData}/>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <MonthlyPnLChart mergedData={chartData}/>
+              <SavingsRateChart mergedData={chartData}/>
+            </div>
             <WaterfallChart mergedData={chartData}/>
-            <StreakTracker mergedData={chartData}/>
-            <PnLHistogram mergedData={chartData}/>
-            <MonthlyPnLHistogram mergedData={chartData}/>
-            <DrawdownChart mergedData={chartData}/>
-            <RollingVolatilityChart mergedData={chartData}/>
-            <YearOverYearChart mergedData={chartData}/>
-            <AnnualPerformanceChart mergedData={chartData}/>
-            <Rolling12MonthChart mergedData={chartData}/>
-            <MomentumChart mergedData={chartData}/>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <GrowthAttributionChart mergedData={chartData}/>
+              <StreakTracker mergedData={chartData}/>
+            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <PnLHistogram mergedData={chartData}/>
+              <MonthlyPnLHistogram mergedData={chartData}/>
+            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <DrawdownChart mergedData={chartData}/>
+              <RollingVolatilityChart mergedData={chartData}/>
+            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <RollingSharpeChart mergedData={chartData}/>
+              <YearOverYearChart mergedData={chartData}/>
+            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <AnnualPerformanceChart mergedData={chartData}/>
+              <Rolling12MonthChart mergedData={chartData}/>
+            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <RollingCAGRChart mergedData={chartData}/>
+              <MomentumChart mergedData={chartData}/>
+            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <SeasonalityChart mergedData={chartData}/>
+              <BestWorstMonthsChart mergedData={chartData}/>
+            </div>
+            <RealNetWorthChart mergedData={chartData}/>
           </div>
         )}
 
         {/* ── PROIECȚII ────────────────────────────────────────── */}
         {activeTab === 'proiectii' && (
           <div className="space-y-6">
-            <FinancialGoalsProgress mergedData={projectionData}/>
-            <GoalETAChart mergedData={projectionData}/>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <FinancialGoalsProgress mergedData={projectionData}/>
+              <GoalETAChart mergedData={projectionData}/>
+            </div>
             <ProjectionChart mergedData={projectionData}/>
-            <MilestoneTimeline mergedData={projectionData}/>
             <ScenarioProjectionChart mergedData={projectionData}/>
             <MonteCarloChart mergedData={projectionData}/>
-            <ContributionImpactChart mergedData={projectionData}/>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <ContributionImpactChart mergedData={projectionData}/>
+              <FIRESensitivityChart mergedData={projectionData}/>
+            </div>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <FIRECalculator mergedData={projectionData}/>
               <CoastFIRECard mergedData={projectionData}/>
@@ -574,6 +609,7 @@ const WealthTracker: React.FC = () => {
             <InvestmentsSection data={investmentData}/>
             {investmentData.length > 0 && (
               <>
+                <HoldingsTreemap investmentData={investmentData}/>
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   <InvestmentGrowthChart investmentData={investmentData}/>
                   <TerDragChart investmentData={investmentData}/>

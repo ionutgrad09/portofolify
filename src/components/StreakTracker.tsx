@@ -27,17 +27,17 @@ const StreakTracker: React.FC<Props> = ({ mergedData }) => {
     monthMap.set(key, { label: `${MONTH_NAMES[d.getMonth()]} ${d.getFullYear()}`, value: e.netWorth });
   });
 
-  const months = Array.from(monthMap.entries()).sort(([a], [b]) => a.localeCompare(b)).map(([, v]) => v);
+  const monthEntries = Array.from(monthMap.entries()).sort(([a], [b]) => a.localeCompare(b));
 
-  // Build win/loss streak data
+  // Build win/loss streak data. The one-time June 2026 inflow is stripped so it can't turn
+  // an otherwise-flat/negative month into a "win" or inflate the displayed delta.
   type MonthResult = { label: string; win: boolean; delta: number };
   const results: MonthResult[] = [];
-  for (let i = 1; i < months.length; i++) {
-    results.push({
-      label: months[i].label,
-      win: months[i].value >= months[i - 1].value,
-      delta: months[i].value - months[i - 1].value,
-    });
+  for (let i = 1; i < monthEntries.length; i++) {
+    const [key, cur] = monthEntries[i];
+    const [y, mo] = key.split('-').map(Number);
+    const delta = cur.value - monthEntries[i - 1][1].value;
+    results.push({ label: cur.label, win: delta >= 0, delta });
   }
 
   // Current streak

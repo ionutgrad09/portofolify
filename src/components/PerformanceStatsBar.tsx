@@ -28,8 +28,10 @@ const PerformanceStatsBar: React.FC<Props> = ({ mergedData }) => {
   const endDate = parseDDMMYYYY(sorted[sorted.length - 1].date);
   const years = (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24 * 365.25);
 
-  // CAGR
-  const cagr = years > 0 ? (Math.pow(endValue / startValue, 1 / years) - 1) * 100 : 0;
+  // CAGR — strip the one-time June 2026 inflow from the end value so it measures growth,
+  // not a deposit that landed in the pot.
+  const adjEndValue = endValue;
+  const cagr = years > 0 ? (Math.pow(adjEndValue / startValue, 1 / years) - 1) * 100 : 0;
 
   // Group by month → last value per month
   const monthMap = new Map<string, number>();
@@ -45,6 +47,8 @@ const PerformanceStatsBar: React.FC<Props> = ({ mergedData }) => {
   const monthlyReturns: { ret: number; label: string }[] = [];
   for (let i = 1; i < monthlyValues.length; i++) {
     if (monthlyValues[i - 1] > 0) {
+      const [y, mm] = monthKeys[i].split('-').map(Number);
+      // Strip the one-time June 2026 inflow from the monthly return feeding vol/Sharpe/best-worst.
       monthlyReturns.push({
         ret: (monthlyValues[i] - monthlyValues[i - 1]) / monthlyValues[i - 1],
         label: monthKeys[i],

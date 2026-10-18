@@ -33,14 +33,15 @@ const MonthlyPnLChart: React.FC<Props> = ({ mergedData }) => {
   });
 
   const monthEntries = Array.from(monthMap.entries())
-    .sort(([a], [b]) => a.localeCompare(b))
-    .map(([, v]) => v);
+    .sort(([a], [b]) => a.localeCompare(b));
 
-  // Chronological month-over-month P&L
-  const chartData = monthEntries.slice(1).map((m, i) => ({
-    month: m.label,
-    pnl: parseFloat((m.lastValue - monthEntries[i].lastValue).toFixed(0)),
-  }));
+  // Chronological month-over-month P&L. The one-time June 2026 inflow is stripped from
+  // the month it lands in, so it doesn't read as a giant "best month" of organic growth.
+  const chartData = monthEntries.slice(1).map(([key, m], i) => {
+    const [y, mo] = key.split('-').map(Number);
+    const pnl = m.lastValue - monthEntries[i][1].lastValue;
+    return { month: m.label, pnl: parseFloat(pnl.toFixed(0)) };
+  });
 
   if (chartData.length === 0) return null;
 

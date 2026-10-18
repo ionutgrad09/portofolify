@@ -123,6 +123,8 @@ const SavingsRateChart: React.FC<Props> = ({ mergedData }) => {
           <YAxis stroke="#94a3b8" tickFormatter={(v: number) => `€${(v / 1000).toFixed(0)}k`} />
           <Tooltip
             contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px', color: 'white' }}
+            labelStyle={{ color: '#94a3b8', fontSize: 11, marginBottom: 4 }}
+            itemStyle={{ color: '#e2e8f0' }}
             formatter={(v: any, name: string) => [formatEUR(Number(v)), name]}
             cursor={{ fill: 'rgba(148,163,184,0.08)' }}
           />

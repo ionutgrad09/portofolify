@@ -114,6 +114,8 @@ const ContributionImpactChart: React.FC<Props> = ({ mergedData }) => {
             tickFormatter={(v: number) => v >= 1e6 ? `€${(v / 1e6).toFixed(1)}M` : `€${(v / 1000).toFixed(0)}k`} />
           <Tooltip
             contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px', color: 'white' }}
+            labelStyle={{ color: '#94a3b8', fontSize: 11, marginBottom: 4 }}
+            itemStyle={{ color: '#e2e8f0' }}
             formatter={(v: any, name: string) => {
               const idx = Number(name.replace('v', ''));
               return [formatEUR(v), variants[idx]?.label ?? name];

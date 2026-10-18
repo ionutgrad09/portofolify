@@ -96,11 +96,12 @@ const ScenarioProjectionChart: React.FC<{ mergedData: MergedData[] }> = ({ merge
       : '';
 
     const monthlyReturn = investmentBalance * (annualReturn / 100) / 12;
-    // Contribution grows the investment balance (for compounding) but is NOT
-    // added as a direct flat boost to the projection — only the investment
-    // return from the growing balance boosts the projected net worth.
+    // The extra contribution both grows the investment balance (so it compounds via the
+    // return above) AND adds to net worth as principal. baseMonthlyAvg is the historical
+    // trend, which does NOT include this extra saving, so the principal must be added on
+    // top — otherwise the money you deposit never shows up in the projected net worth.
     investmentBalance += monthlyContrib + monthlyReturn;
-    const boost = monthlyReturn; // only investment return, not raw contribution
+    const boost = monthlyContrib + monthlyReturn;
 
     base       += baseMonthlyAvg      + boost;
     optimistic += optimisticMonthly   + boost;

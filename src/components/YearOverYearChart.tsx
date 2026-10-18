@@ -54,7 +54,7 @@ const YearOverYearChart: React.FC<Props> = ({ mergedData }) => {
           const yearMap = byYearMonth.get(yr)!;
           const firstMonth = Math.min(...Array.from(yearMap.keys()));
           const base = yearMap.get(firstMonth)!;
-          row[String(yr)] = parseFloat(((val / base - 1) * 100).toFixed(2));
+          row[String(yr)] = parseFloat((((val) / base - 1) * 100).toFixed(2));
         }
       }
     });
@@ -93,6 +93,8 @@ const YearOverYearChart: React.FC<Props> = ({ mergedData }) => {
           />
           <Tooltip
             contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px', color: 'white' }}
+            labelStyle={{ color: '#94a3b8', fontSize: 11, marginBottom: 4 }}
+            itemStyle={{ color: '#e2e8f0' }}
             formatter={(v: any, name: string) =>
               mode === 'indexed'
                 ? [`${(v as number) > 0 ? '+' : ''}${(v as number).toFixed(2)}%`, name]

@@ -17,11 +17,11 @@ const AnnualPerformanceChart: React.FC<{ mergedData: MergedData[] }> = ({ merged
     (a, b) => parseDDMMYYYY(a.date).getTime() - parseDDMMYYYY(b.date).getTime()
   );
 
-  // Track the last net worth entry per calendar year
-  const lastOfYear = new Map<number, number>();
+  // Track the last net worth entry (value + date) per calendar year
+  const lastOfYear = new Map<number, { value: number; date: string }>();
   sorted.forEach(entry => {
     const year = parseDDMMYYYY(entry.date).getFullYear();
-    lastOfYear.set(year, entry.netWorth);
+    lastOfYear.set(year, { value: entry.netWorth, date: entry.date });
   });
 
   const years = Array.from(lastOfYear.keys()).sort((a, b) => a - b);
@@ -30,8 +30,9 @@ const AnnualPerformanceChart: React.FC<{ mergedData: MergedData[] }> = ({ merged
   // This avoids inaccuracy from the "first snapshot of the year" being mid-month
   const annualData = years.map((year, idx) => {
     const prevYear = idx === 0 ? null : years[idx - 1];
-    const startValue = prevYear !== null ? lastOfYear.get(prevYear)! : sorted[0].netWorth;
-    const endValue = lastOfYear.get(year)!;
+    const start = prevYear !== null ? lastOfYear.get(prevYear)! : { value: sorted[0].netWorth, date: sorted[0].date };
+    const startValue = start.value;
+    const endValue = lastOfYear.get(year)!.value;
     return {
       year: String(year),
       gain: endValue - startValue,

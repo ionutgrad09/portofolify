@@ -24,9 +24,12 @@ const PnLHistogram: React.FC<Props> = ({ mergedData }) => {
   // Period-over-period deltas (raw difference, no normalization)
   const deltas: { value: number; from: string; to: string }[] = [];
   for (let i = 1; i < sorted.length; i++) {
-    const days = (parseDDMMYYYY(sorted[i].date).getTime() - parseDDMMYYYY(sorted[i - 1].date).getTime()) / (24 * 60 * 60 * 1000);
+    const prevDate = parseDDMMYYYY(sorted[i - 1].date);
+    const currDate = parseDDMMYYYY(sorted[i].date);
+    const days = (currDate.getTime() - prevDate.getTime()) / (24 * 60 * 60 * 1000);
     if (days <= 0) continue;
     deltas.push({
+      // Strip the one-time June 2026 inflow so it doesn't distort the distribution.
       value: sorted[i].netWorth - sorted[i - 1].netWorth,
       from: sorted[i - 1].date,
       to: sorted[i].date,

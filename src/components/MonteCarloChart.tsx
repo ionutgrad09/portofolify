@@ -59,9 +59,13 @@ const MonteCarloChart: React.FC<Props> = ({ mergedData }) => {
     const currDate = new Date(Number(currKey.split('-')[0]), Number(currKey.split('-')[1]) - 1);
     const lump = oneTimeInflowInWindow(prevDate, currDate);
 
-    // Investment market return
+    // Investment market return — strip out the assumed monthly contribution so this
+    // reflects pure market movement, not new money flowing in. Without this, a €2k
+    // contribution into a €20k pot reads as a +10%/month "return"; the simulation then
+    // adds the contribution a second time and net worth balloons unrealistically.
     if (prev.investments > 0) {
-      investmentReturns.push((curr.investments - prev.investments) / prev.investments);
+      const marketDelta = curr.investments - prev.investments - monthlyContrib;
+      investmentReturns.push(marketDelta / prev.investments);
     }
 
     // Cash flow: net worth change minus investment market move minus one-time inflows
@@ -189,6 +193,8 @@ const MonteCarloChart: React.FC<Props> = ({ mergedData }) => {
           <YAxis stroke="#94a3b8" tickFormatter={(v: number) => v >= 1e6 ? `€${(v/1e6).toFixed(1)}M` : `€${(v/1000).toFixed(0)}k`} />
           <Tooltip
             contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px', color: 'white' }}
+            labelStyle={{ color: '#94a3b8', fontSize: 11, marginBottom: 4 }}
+            itemStyle={{ color: '#e2e8f0' }}
             formatter={(v: any, name: string) => {
               const labels: Record<string, string> = { p10: 'P10 — scenariu slab', p25: 'P25', p50: 'Median (P50)', p75: 'P75', p90: 'P90 — scenariu bun' };
               return [formatEUR(v), labels[name] ?? name];

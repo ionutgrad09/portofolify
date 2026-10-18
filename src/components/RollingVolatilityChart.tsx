@@ -42,7 +42,11 @@ const RollingVolatilityChart: React.FC<Props> = ({ mergedData }) => {
   for (let i = 1; i < monthEntries.length; i++) {
     const prev = monthEntries[i - 1][1].value;
     const curr = monthEntries[i][1].value;
-    if (prev > 0) returns.push({ label: monthEntries[i][1].label, ret: (curr - prev) / prev });
+    if (prev > 0) {
+      const [y, mm] = monthEntries[i][0].split('-').map(Number);
+      // Strip the one-time June 2026 inflow so it doesn't spike measured volatility.
+      returns.push({ label: monthEntries[i][1].label, ret: (curr - prev) / prev });
+    }
   }
 
   // Rolling 3-month volatility (annualized)
@@ -103,6 +107,8 @@ const RollingVolatilityChart: React.FC<Props> = ({ mergedData }) => {
           <YAxis stroke="#94a3b8" tickFormatter={(v: number) => `${v.toFixed(0)}%`} />
           <Tooltip
             contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px', color: 'white' }}
+            labelStyle={{ color: '#94a3b8', fontSize: 11, marginBottom: 4 }}
+            itemStyle={{ color: '#e2e8f0' }}
             formatter={(v: any) => [`${(v as number).toFixed(2)}%`, 'Volatilitate anualizată']}
           />
           <ReferenceLine y={avgVol} stroke="#94a3b8" strokeDasharray="4 4" label={{ value: 'medie', fill: '#94a3b8', fontSize: 9 }} />

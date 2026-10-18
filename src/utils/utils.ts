@@ -47,16 +47,27 @@ export const formatRON = (value: number): string => {
   return `${formatCurrency(value)} RON`;
 };
 
-// One-time 37k inflow in June 2026: it stays in all displayed totals, but is a
-// non-recurring deposit, so it must be excluded from growth-rate / trend calculations.
+// One-time 37k inflow deposited on 11.06.2026: it stays in all displayed totals, but is a
+// non-recurring deposit, so exactly 37k must be excluded from growth-rate / trend
+// calculations. That day's snapshot also holds other (recurring) income — we subtract only
+// the 37k, never the whole day's delta, so the rest stays counted.
 export const ONE_TIME_INFLOW = 37000;
-const ONE_TIME_INFLOW_DATE = new Date(2026, 5, 1); // 01.06.2026
+const ONE_TIME_INFLOW_DATE = new Date(2026, 5, 11); // 11.06.2026
 
 // Returns the portion of a growth delta attributable to the one-time inflow for a
 // window [startDate, endDate]. Subtract it from the raw delta to get recurring growth.
 export const oneTimeInflowInWindow = (startDate: Date, endDate: Date): number =>
   startDate.getTime() < ONE_TIME_INFLOW_DATE.getTime() &&
   endDate.getTime() >= ONE_TIME_INFLOW_DATE.getTime()
+    ? ONE_TIME_INFLOW
+    : 0;
+
+// EUR portion of the one-time inflow captured by a month-over-month delta that ENDS in
+// the given calendar month (month is 1–12). Monthly-bucketed charts only keep last-value
+// per month, so they use this instead of the date-based window helper. Subtract it from
+// the raw monthly delta to get recurring growth.
+export const oneTimeInflowForMonth = (year: number, month: number): number =>
+  year === ONE_TIME_INFLOW_DATE.getFullYear() && month === ONE_TIME_INFLOW_DATE.getMonth() + 1
     ? ONE_TIME_INFLOW
     : 0;
 

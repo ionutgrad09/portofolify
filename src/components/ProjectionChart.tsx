@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Target } from 'lucide-react';
 import { Area, AreaChart, CartesianGrid, Line, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import { oneTimeInflowInWindow } from '../utils/utils';
+import { oneTimeInflowForMonth } from '../utils/utils';
 import ChartInfo from './ChartInfo';
 
 // Mock types for demonstration
@@ -37,27 +37,9 @@ const parseDDMMYYYY = (dateStr: string): Date => {
 const toDateStr = (date: Date): string =>
   `${String(date.getDate()).padStart(2, '0')}.${String(date.getMonth() + 1).padStart(2, '0')}.${date.getFullYear()}`;
 
-// Returns week-of-year index (0–51)
-const weekOfYear = (date: Date): number => {
-  const start = new Date(date.getFullYear(), 0, 1);
-  return Math.min(Math.floor((date.getTime() - start.getTime()) / (7 * 24 * 60 * 60 * 1000)), 51);
-};
-
-
 const avg = (arr: number[]) => arr.reduce((a, b) => a + b, 0) / arr.length;
 
-const CONTRIB_KEY = 'portofolify_monthly_contrib';
-const RETURN_KEY  = 'portofolify_annual_return';
-
 const ProjectionChart: React.FC<{ mergedData: MergedData[] }> = ({ mergedData }) => {
-  const [monthlyContrib, setMonthlyContrib] = useState<number>(() =>
-    Number(localStorage.getItem(CONTRIB_KEY) || '2000'));
-  const [annualReturn, setAnnualReturn] = useState<number>(() =>
-    Number(localStorage.getItem(RETURN_KEY) || '7.5'));
-
-  const handleContrib = (v: number) => { setMonthlyContrib(v); localStorage.setItem(CONTRIB_KEY, String(v)); };
-  const handleReturn  = (v: number) => { setAnnualReturn(v);   localStorage.setItem(RETURN_KEY,  String(v)); };
-
   if (!mergedData || mergedData.length < 2) {
     return null;
   }
@@ -65,101 +47,73 @@ const ProjectionChart: React.FC<{ mergedData: MergedData[] }> = ({ mergedData })
   const sortedData = [...mergedData]
     .sort((a, b) => parseDDMMYYYY(a.date).getTime() - parseDDMMYYYY(b.date).getTime());
 
-  // Use real latest entry (may include the excluded date) as projection start
-  const lastEntry = [...mergedData]
-    .sort((a, b) => parseDDMMYYYY(a.date).getTime() - parseDDMMYYYY(b.date).getTime())
-    .at(-1)!;
+  // Real latest entry is the projection start (its net worth includes the June inflow —
+  // that's fine, the inflow stays in the level, we only strip it from the growth trend).
+  const lastEntry = sortedData.at(-1)!;
   const currentWealth = lastEntry.netWorth;
 
-  // Compute week-over-week deltas, normalized to 7 days, tagged with year.
-  // The 37k June 2026 inflow stays in all totals, but is a one-time deposit, so we
-  // strip it from the deltas to keep the projected weekly trend realistic.
-  const weeklyDeltas: { week: number; delta: number }[] = [];
-  for (let i = 1; i < sortedData.length; i++) {
-    const prevDate = parseDDMMYYYY(sortedData[i - 1].date);
-    const currDate = parseDDMMYYYY(sortedData[i].date);
-    const days = (currDate.getTime() - prevDate.getTime()) / (24 * 60 * 60 * 1000);
-    if (days <= 0) continue;
-    const recurringGrowth =
-      sortedData[i].netWorth - sortedData[i - 1].netWorth - oneTimeInflowInWindow(prevDate, currDate);
-    const normalizedDelta = (recurringGrowth / days) * 7;
-    weeklyDeltas.push({ week: weekOfYear(currDate), delta: normalizedDelta });
+  // ── Calendar-month-end snapshots (last value observed in each month) ──────────
+  const monthEndMap = new Map<string, { date: Date; value: number }>();
+  sortedData.forEach(d => {
+    const dt = parseDDMMYYYY(d.date);
+    const key = `${dt.getFullYear()}-${String(dt.getMonth()).padStart(2, '0')}`;
+    monthEndMap.set(key, { date: dt, value: d.netWorth }); // later entries overwrite → last of month
+  });
+  const monthEnds = Array.from(monthEndMap.values()).sort((a, b) => a.date.getTime() - b.date.getTime());
+  if (monthEnds.length < 2) return null;
+
+  // Month-over-month deltas, tagged by the ENDING calendar month (0–11). The one-time
+  // June 2026 inflow is subtracted from the delta it lands in, so it never inflates the
+  // projected trend (it won't recur).
+  const deltas: { month: number; delta: number }[] = [];
+  for (let i = 1; i < monthEnds.length; i++) {
+    const curr = monthEnds[i];
+    const raw =
+      curr.value - monthEnds[i - 1].value - oneTimeInflowForMonth(curr.date.getFullYear(), curr.date.getMonth() + 1);
+    deltas.push({ month: curr.date.getMonth(), delta: raw });
   }
 
-  if (weeklyDeltas.length === 0) return null;
+  const allDeltas = deltas.map(d => d.delta);
+  const overallAvgMonthly = avg(allDeltas);
 
-  // End-to-end weekly average
-  const allDeltas = weeklyDeltas.map(d => d.delta);
-  const startMs = parseDDMMYYYY(sortedData[0].date).getTime();
-  const endMs   = parseDDMMYYYY(lastEntry.date).getTime();
-  const totalWeeks = (endMs - startMs) / (7 * 24 * 60 * 60 * 1000);
-  const overallAvgWeekly = totalWeeks > 0
-    ? (lastEntry.netWorth - sortedData[0].netWorth - oneTimeInflowInWindow(parseDDMMYYYY(sortedData[0].date), parseDDMMYYYY(lastEntry.date))) / totalWeeks
-    : avg(allDeltas);
+  // Seasonal average per calendar month: the growth we predict for a future month is the
+  // average change historically seen in that same month across all years (e.g. the mean of
+  // past Augusts predicts next August). Months with no history fall back to the overall mean.
+  const byMonth: number[][] = Array.from({ length: 12 }, () => []);
+  deltas.forEach(({ month, delta }) => byMonth[month].push(delta));
+  const seasonalMonthlyAvg = byMonth.map(slot => (slot.length > 0 ? avg(slot) : overallAvgMonthly));
 
-  const variance = allDeltas.reduce((sum, d) => sum + Math.pow(d - overallAvgWeekly, 2), 0) / allDeltas.length;
+  const variance = allDeltas.reduce((sum, d) => sum + Math.pow(d - overallAvgMonthly, 2), 0) / allDeltas.length;
   const stdDev = Math.sqrt(variance);
 
-  // Seasonal buckets across all data
-  const byWeek: number[][] = Array.from({ length: 52 }, () => []);
-  weeklyDeltas.forEach(({ week, delta }) => byWeek[week].push(delta));
-
-  const seasonalWeeklyAvg: number[] = byWeek.map(slot =>
-    slot.length > 0 ? avg(slot) : overallAvgWeekly
-  );
-
-  // Projected weekly average (for display)
-  const projectedAvgWeekly = avg(seasonalWeeklyAvg);
-
-  // ── Contribution + investment return boost ──────────────────────
-  const weeklyContrib = monthlyContrib / 4.33;
-  let investmentBalance = lastEntry.investments;
-  const initialWeeklyReturn = investmentBalance * (annualReturn / 100) / 52;
-
-  // Build 52-week projection
+  // ── Build 12-month projection ──────────────────────────────────────────────
   const projectionData = [...sortedData] as any[];
+  const monthlyProjections: Array<{ month: string; projectedValue: number; totalGrowth: number }> = [];
   let currentTotal = currentWealth;
   const projDate = parseDDMMYYYY(lastEntry.date);
 
-  const weeklyProjections: Array<{ date: string; netWorth: number; upperBound: number; lowerBound: number }> = [];
-
-  for (let w = 0; w < 52; w++) {
-    projDate.setDate(projDate.getDate() + 7);
-    const weeklyReturn = investmentBalance * (annualReturn / 100) / 52;
-    const extraBoost   = weeklyContrib + weeklyReturn;
-    investmentBalance += weeklyContrib + weeklyReturn;
-    const delta = seasonalWeeklyAvg[weekOfYear(projDate)] + extraBoost;
+  for (let m = 0; m < 12; m++) {
+    projDate.setMonth(projDate.getMonth() + 1);
+    const delta = seasonalMonthlyAvg[projDate.getMonth()];
     currentTotal += delta;
-    const spread = stdDev * Math.sqrt(w + 1);
+    const spread = stdDev * Math.sqrt(m + 1);
     const dateStr = toDateStr(projDate);
-    weeklyProjections.push({ date: dateStr, netWorth: currentTotal, upperBound: currentTotal + spread, lowerBound: currentTotal - spread });
-    projectionData.push({ ...lastEntry, date: dateStr, netWorth: currentTotal, upperBound: currentTotal + spread, lowerBound: currentTotal - spread, isProjection: true } as any);
-  }
-
-  // Aggregate weekly projections into calendar months
-  const monthlyProjections: Array<{ month: string; projectedValue: number; totalGrowth: number }> = [];
-  const monthMap = new Map<string, { name: string; lastValue: number }>();
-  let prevMonthKey = '';
-  let monthStartWealth = currentWealth;
-
-  weeklyProjections.forEach(wp => {
-    const d = parseDDMMYYYY(wp.date);
-    const mk = `${d.getFullYear()}-${d.getMonth()}`;
-    const name = `${MONTH_NAMES[d.getMonth()]} ${d.getFullYear()}`;
-
-    if (prevMonthKey && mk !== prevMonthKey) {
-      const prev = monthMap.get(prevMonthKey)!;
-      monthlyProjections.push({ month: prev.name, projectedValue: prev.lastValue, totalGrowth: prev.lastValue - monthStartWealth });
-      monthStartWealth = prev.lastValue;
-    }
-
-    monthMap.set(mk, { name, lastValue: wp.netWorth });
-    prevMonthKey = mk;
-  });
-
-  if (prevMonthKey) {
-    const last = monthMap.get(prevMonthKey)!;
-    monthlyProjections.push({ month: last.name, projectedValue: last.lastValue, totalGrowth: last.lastValue - monthStartWealth });
+    // Simple linear trajectory: flat historical monthly average, no seasonality — amber ref line.
+    const linearTrajectory = currentWealth + overallAvgMonthly * (m + 1);
+    projectionData.push({
+      ...lastEntry,
+      date: dateStr,
+      netWorth: currentTotal,
+      upperBound: currentTotal + spread,
+      lowerBound: currentTotal - spread,
+      linearTrajectory,
+      isProjection: true,
+    } as any);
+    monthlyProjections.push({
+      month: `${MONTH_NAMES[projDate.getMonth()]} ${projDate.getFullYear()}`,
+      projectedValue: currentTotal,
+      totalGrowth: delta,
+    });
   }
 
   const endProjectedValue = currentTotal;
@@ -168,166 +122,128 @@ const ProjectionChart: React.FC<{ mergedData: MergedData[] }> = ({ mergedData })
     <div className="bg-slate-900/50 backdrop-blur-xl rounded-2xl p-6 shadow-2xl border border-slate-800">
       <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
         <Target className="text-blue-400" size={24}/>
-        Proiecție 52 Săptămâni
-        <ChartInfo text="Proiectează averea ta pentru următoarele 52 de săptămâni bazat pe trendul tău sezonier istoric (mediana per săptămână calendaristică). Linia albastră = proiecție sezonieră + boost din investiții; Linia galbenă punctată = traiectoria liniară simplă la rata ta istorică (fără sezonalitate); Banda albastră = intervalul de ±1 deviație standard. Contribuție extra = bani suplimentari față de obicei. Randamentul se aplică DOAR pe soldul de investiții curent." />
+        Proiecție 12 Luni
+        <ChartInfo text="Proiectează averea pentru următoarele 12 luni folosind DOAR datele tale istorice, fără parametri de configurat. Pentru fiecare lună viitoare aplică creșterea medie observată istoric în acea lună calendaristică (ex: media lunilor august din anii anteriori prezice augustul viitor). Linia albastră = proiecție sezonieră; Linia galbenă punctată = traiectorie liniară la media istorică lunară; Banda albastră = intervalul de ±1 deviație standard. Intrarea unică de 37k din iunie 2026 este exclusă din trend (nu se va repeta)." />
       </h2>
 
-      <div className="bg-slate-800/50 rounded-lg p-3 mb-4 space-y-2">
-        <div className="grid grid-cols-3 gap-2 text-xs">
-          <div>
-            <p className="text-slate-400">Medie Istorică</p>
-            <p className="text-white font-bold">{formatEUR(overallAvgWeekly)}/săpt</p>
-            <p className="text-slate-400 text-[10px]">({formatEUR(overallAvgWeekly * 4.33)}/lună)</p>
-          </div>
-          <div>
-            <p className="text-slate-400">Proiectat (cu boost)</p>
-            <p className="text-emerald-400 font-bold">{formatEUR(projectedAvgWeekly + weeklyContrib + initialWeeklyReturn)}/săpt</p>
-            <p className="text-slate-400 text-[10px]">({formatEUR((projectedAvgWeekly + weeklyContrib + initialWeeklyReturn) * 4.33)}/lună)</p>
-          </div>
-          <div>
-            <p className="text-slate-400">Proiecție la 52 săpt</p>
-            <p className="text-blue-400 font-bold">{formatEUR(endProjectedValue)}</p>
+      <div className="bg-slate-800/50 rounded-lg p-3 mb-4 grid grid-cols-3 gap-2 text-xs">
+        <div>
+          <p className="text-slate-400">Creștere medie/lună</p>
+          <p className="text-white font-bold">{formatEUR(overallAvgMonthly)}</p>
+          <p className="text-slate-600 text-[9px]">istorică, fără intrări unice</p>
+        </div>
+        <div>
+          <p className="text-slate-400">Proiecție la 12 luni</p>
+          <p className="text-blue-400 font-bold">{formatEUR(endProjectedValue)}</p>
+        </div>
+        <div>
+          <p className="text-slate-400">Câștig proiectat</p>
+          <p className="text-emerald-400 font-bold">+{formatEUR(endProjectedValue - currentWealth)}</p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+        {/* Chart */}
+        <div>
+          <ResponsiveContainer width="100%" height={300}>
+            <AreaChart data={projectionData}>
+              <defs>
+                <linearGradient id="colorProjection" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.6}/>
+                  <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.1}/>
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="#334155"/>
+              <XAxis
+                dataKey="date"
+                stroke="#94a3b8"
+                tick={{fontSize: 9}}
+                angle={-45}
+                textAnchor="end"
+                height={80}
+                interval={Math.floor(projectionData.length / 12)}
+              />
+              <YAxis stroke="#94a3b8" tickFormatter={(val: number) => `€${(val / 1000)?.toFixed(0)}k`}/>
+              <Tooltip
+                contentStyle={{backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px', color: "white"}}
+                labelStyle={{ color: '#94a3b8', fontSize: 11, marginBottom: 4 }}
+                itemStyle={{ color: '#e2e8f0' }}
+                formatter={(value: any, name: string) => {
+                  if (name === 'netWorth') return [formatEUR(value), 'Valoare'];
+                  if (name === 'linearTrajectory') return [formatEUR(value), 'Traiectorie liniară'];
+                  if (name === 'upperBound') return [formatEUR(value), 'Estimat Max'];
+                  if (name === 'lowerBound') return [formatEUR(value), 'Estimat Min'];
+                  return [formatEUR(value), name];
+                }}
+              />
+              <Area type="monotone" dataKey="upperBound" stroke="none" fill="#3b82f6" fillOpacity={0.2}/>
+              <Area
+                type="monotone"
+                dataKey="netWorth"
+                stroke="#3b82f6"
+                strokeWidth={2}
+                fill="url(#colorProjection)"
+              />
+              <Area type="monotone" dataKey="lowerBound" stroke="none" fill="#3b82f6" fillOpacity={0.2}/>
+              <Line
+                type="monotone"
+                dataKey="linearTrajectory"
+                stroke="#f59e0b"
+                strokeWidth={2}
+                strokeDasharray="5 5"
+                dot={false}
+                connectNulls
+                name="linearTrajectory"
+              />
+            </AreaChart>
+          </ResponsiveContainer>
+
+          <div className="flex flex-wrap gap-4 mt-2 text-xs text-slate-400">
+            <span className="flex items-center gap-1.5"><span className="inline-block w-4 border-t-2 border-blue-500"></span>Proiecție sezonieră</span>
+            <span className="flex items-center gap-1.5"><span className="inline-block w-4 border-t-2 border-dashed border-amber-400"></span>Traiectorie istorică liniară</span>
+            <span className="flex items-center gap-1.5"><span className="inline-block w-4 h-3 bg-blue-500/20 rounded"></span>Bandă ±1σ</span>
           </div>
         </div>
-        <div className="border-t border-slate-700/50 pt-2 grid grid-cols-2 gap-2 text-xs">
-          <div>
-            <p className="text-slate-500">+ Contribuție lunară</p>
-            <p className="text-purple-400 font-bold">{formatEUR(monthlyContrib)}/lună</p>
-          </div>
-          <div>
-            <p className="text-slate-500">+ Randament investiții (~{annualReturn}%/an)</p>
-            <p className="text-amber-400 font-bold">{formatEUR(lastEntry.investments * (annualReturn / 100) / 12)}/lună inițial</p>
+
+        {/* Monthly Projections Table */}
+        <div>
+          <h3 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
+            📅 Prognoză Detaliată Lunară
+          </h3>
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs">
+              <thead className="text-slate-400 border-b border-slate-700">
+              <tr>
+                <th className="text-left py-2 px-2">Lună</th>
+                <th className="text-right py-2 px-2">Valoare Totală</th>
+                <th className="text-right py-2 px-2">Câștig</th>
+              </tr>
+              </thead>
+              <tbody className="text-slate-300">
+              {monthlyProjections.map((proj, idx) => {
+                const gain = proj.totalGrowth;
+                const gainColor = gain >= 0 ? 'text-green-400' : 'text-red-400';
+                const gainPrefix = gain >= 0 ? '+' : '';
+                return (
+                  <tr key={idx} className="border-b border-slate-800 hover:bg-slate-800/50 transition-colors">
+                    <td className="py-2 px-2 font-medium">{proj.month}</td>
+                    <td className="text-right py-2 px-2 font-bold text-blue-400">{formatEUR(proj.projectedValue)}</td>
+                    <td className={`text-right py-2 px-2 font-bold ${gainColor}`}>{gainPrefix}{formatEUR(gain)}</td>
+                  </tr>
+                );
+              })}
+              </tbody>
+            </table>
           </div>
         </div>
       </div>
 
-      <ResponsiveContainer width="100%" height={300}>
-        <AreaChart data={projectionData}>
-          <defs>
-            <linearGradient id="colorProjection" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.6}/>
-              <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.1}/>
-            </linearGradient>
-          </defs>
-          <CartesianGrid strokeDasharray="3 3" stroke="#334155"/>
-          <XAxis
-            dataKey="date"
-            stroke="#94a3b8"
-            tick={{fontSize: 9}}
-            angle={-45}
-            textAnchor="end"
-            height={80}
-            interval={Math.floor(projectionData.length / 12)}
-          />
-          <YAxis stroke="#94a3b8" tickFormatter={(val: number) => `€${(val / 1000)?.toFixed(0)}k`}/>
-          <Tooltip
-            contentStyle={{backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px', color: "white"}}
-            formatter={(value: any, name: string) => {
-              if (name === 'netWorth') return [formatEUR(value), 'Valoare'];
-              if (name === 'upperBound') return [formatEUR(value), 'Estimat Max'];
-              if (name === 'lowerBound') return [formatEUR(value), 'Estimat Min'];
-              return [formatEUR(value), name];
-            }}
-          />
-          <Area type="monotone" dataKey="upperBound" stroke="none" fill="#3b82f6" fillOpacity={0.2}/>
-          <Area
-            type="monotone"
-            dataKey="netWorth"
-            stroke="#3b82f6"
-            strokeWidth={2}
-            fill="url(#colorProjection)"
-            strokeDasharray={(entry: any) => entry.isProjection ? "5 5" : ""}
-          />
-          <Area type="monotone" dataKey="lowerBound" stroke="none" fill="#3b82f6" fillOpacity={0.2}/>
-        </AreaChart>
-      </ResponsiveContainer>
-
-      <div className="flex flex-wrap gap-4 mt-2 text-xs text-slate-400">
-        <span className="flex items-center gap-1.5"><span className="inline-block w-4 border-t-2 border-blue-500"></span>Proiecție sezonieră + boost</span>
-        <span className="flex items-center gap-1.5"><span className="inline-block w-4 border-t-2 border-dashed border-amber-400"></span>Traiectorie istorică liniară</span>
-        <span className="flex items-center gap-1.5"><span className="inline-block w-4 h-3 bg-blue-500/20 rounded"></span>Bandă ±1σ</span>
-      </div>
-
-      {/* Monthly Projections Table */}
-      <div className="mt-6">
-        <h3 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
-          📅 Prognoză Detaliată Lunară
-        </h3>
-        <div className="overflow-x-auto">
-          <table className="w-full text-xs">
-            <thead className="text-slate-400 border-b border-slate-700">
-            <tr>
-              <th className="text-left py-2 px-2">Lună</th>
-              <th className="text-right py-2 px-2">Valoare Totală</th>
-              <th className="text-right py-2 px-2">Câștig</th>
-            </tr>
-            </thead>
-            <tbody className="text-slate-300">
-            {monthlyProjections.map((proj, idx) => {
-              const gain = proj.totalGrowth;
-              const gainColor = gain >= 0 ? 'text-green-400' : 'text-red-400';
-              const gainPrefix = gain >= 0 ? '+' : '';
-              return (
-                <tr key={idx} className="border-b border-slate-800 hover:bg-slate-800/50 transition-colors">
-                  <td className="py-2 px-2 font-medium">{proj.month}</td>
-                  <td className="text-right py-2 px-2 font-bold text-blue-400">{formatEUR(proj.projectedValue)}</td>
-                  <td className={`text-right py-2 px-2 font-bold ${gainColor}`}>{gainPrefix}{formatEUR(gain)}</td>
-                </tr>
-              );
-            })}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* Settings */}
-      <div className="mt-5 pt-4 border-t border-slate-700/50">
-        <p className="text-xs text-slate-400 mb-3 font-medium">Parametri proiecție</p>
-        <div className="bg-slate-800/30 border border-slate-700/40 rounded-xl p-3 mb-3 text-xs text-slate-400 space-y-1">
-          <p>
-            <span className="text-white font-semibold">Trendul istoric</span> (linia albastră) derivă din evoluția reală a averii tale —
-            include deja salarii, cheltuieli, pierderi, taxe. Nu trebuie să adaugi nimic dacă vrei să proiectezi "la fel ca până acum".
-          </p>
-          <p>
-            <span className="text-purple-400 font-semibold">Contribuție lunară netă</span> = bani <em>extra</em> pe care intenționezi să îi economisești
-            lunar față de comportamentul tău istoric. De ex. dacă în trecut ai economisit în medie €3k/lună și vrei să modelezi €5k/lună, introduci €2k.
-            Dacă nu vrei să schimbi nimic, lasă €0.
-          </p>
-          <p>
-            <span className="text-amber-400 font-semibold">Randament investiții</span> = dobânda anuală estimată pe soldul tău de investiții
-            (ETF-uri, acțiuni etc.). Nu se aplică pe toată averea, ci doar pe <span className="text-white">{formatEUR(lastEntry.investments)}</span> — soldul
-            curent de investiții. La {annualReturn}% asta înseamnă ~{formatEUR(lastEntry.investments * (annualReturn / 100) / 12)}/lună în plus față de trend.
-          </p>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label className="text-xs text-slate-400 mb-1 block">Contribuție lunară netă (EUR)</label>
-            <div className="flex flex-col gap-1.5">
-              <input type="number" min={0} step={100} value={monthlyContrib}
-                onChange={e => handleContrib(Number(e.target.value))}
-                className="bg-slate-800 border border-slate-600 text-white rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-blue-500 w-full" />
-              <input type="range" min={0} max={10000} step={100} value={monthlyContrib}
-                onChange={e => handleContrib(Number(e.target.value))}
-                className="w-full accent-purple-400" />
-            </div>
-          </div>
-          <div>
-            <label className="text-xs text-slate-400 mb-1 block">Randament anual investiții pe {formatEUR(lastEntry.investments)} (%)</label>
-            <div className="flex flex-col gap-1.5">
-              <input type="number" min={0} max={30} step={0.5} value={annualReturn}
-                onChange={e => handleReturn(Number(e.target.value))}
-                className="bg-slate-800 border border-slate-600 text-white rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-blue-500 w-full" />
-              <input type="range" min={0} max={20} step={0.5} value={annualReturn}
-                onChange={e => handleReturn(Number(e.target.value))}
-                className="w-full accent-amber-400" />
-            </div>
-          </div>
-        </div>
-        <p className="text-[10px] text-slate-600 mt-2">Contribuția și randamentul se adaugă peste trendul istoric. Setările sunt salvate automat.</p>
-      </div>
+      <p className="text-[10px] text-slate-600 mt-4">
+        Proiecție bazată exclusiv pe istoricul tău (media sezonieră lunară). Nu conține parametri de configurat — se
+        actualizează automat pe măsură ce adaugi date noi.
+      </p>
     </div>
   );
 };
 
 export default ProjectionChart;
-
